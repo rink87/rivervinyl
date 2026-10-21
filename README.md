@@ -11,3 +11,6 @@ Data: a USGS elevation profile from Mather Point (36.0616, -112.1079) to Bright 
 
 ## Song mode (`index-song.html`)
 Three rim-to-rim sections, Hermits Rest–Point Sublime, Mather–Bright Angel and Desert View–Cape Royal, play as verses. A "Musical" slider goes from 0 (the raw terrain tone) to 1 (minor pentatonic notes on an 84 BPM beat with a drone). The key comes from the river elevation, and the note density and texture come from the real slope and wall roughness. `canyon_song.wav` is a render at Musical 0.6. Build scripts are in `src/`.
+
+## River needle mode (`index-river.html`)
+Follows the Colorado River for 48 km, from Hance Rapid to Serpentine Rapid, like a stereo needle in a groove. The left channel reads the river-left canyon wall and the right channel reads the river-right wall. Pitch comes from wall height, brightness from steepness and grain from roughness. Rapids play as thumps. Data comes from the USGS NHD river line, AWS terrain tiles and GNIS rapid names. `canyon_river.wav` is a render at Musical 0.6. Scripts are in `src/river/`.
