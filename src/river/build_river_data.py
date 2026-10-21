@@ -80,18 +80,19 @@ i, d = proj(36.10605, -112.09469); marks.append(dict(name='Phantom Ranch', i=i, 
 marks.sort(key=lambda m: m['i'])
 # terrain grid for 3D: bbox of the strip, 3 km mask
 xmin, ymin = P.min(0) - 3500; xmax, ymax = P.max(0) + 3500
-GU = 640; GV = int(round(GU * (ymax - ymin) / (xmax - xmin)))
+GU = 1000; GV = int(round(GU * (ymax - ymin) / (xmax - xmin)))
 gx, gy = np.meshgrid(np.linspace(xmin, xmax, GU), np.linspace(ymin, ymax, GV))
 GE = elev(gx, gy)
 from scipy.spatial import cKDTree
-dist, _ = cKDTree(P).query(np.stack([gx.ravel(), gy.ravel()], 1)); dist = dist.reshape(GV, GU)
+dist, nidx = cKDTree(P).query(np.stack([gx.ravel(), gy.ravel()], 1)); dist = dist.reshape(GV, GU)
+ridx = nidx[(dist <= 3200).ravel()].astype('<u2')   # nearest river point for each unmasked cell, row-major (3D wall side / glow)
 q = np.clip(np.round((GE - 500) * 20), 0, 65534).astype('<u2'); q[dist > 3200] = 65535   # 65535 = masked
 r1 = lambda a: [round(float(v), 1) for v in a]
 out = dict(name='Colorado River · Hance Rapid → Serpentine Rapid', source='USGS NHD flowline (hydro.nationalmap.gov), GNIS names (carto.nationalmap.gov), AWS terrarium z13 terrain',
     N=N, ds=float(ss[1] - ss[0]), s0=S0, lat0=LAT0, lon0=LON0,
     x=r1(P[:, 0] - (xmin + xmax) / 2), y=r1(P[:, 1] - (ymin + ymax) / 2), river=r1(riv), river_raw=r1(riv_raw), drop=r1(drop), width300=r1(width300),
     L={k: r1(v) for k, v in Ls.items()}, R={k: r1(v) for k, v in Rs.items()}, marks=marks,
-    grid=dict(GU=GU, GV=GV, w=float(xmax - xmin), h=float(ymax - ymin), off=500, sc=20, data=base64.b64encode(q.tobytes()).decode()),
+    grid=dict(GU=GU, GV=GV, w=float(xmax - xmin), h=float(ymax - ymin), off=500, sc=20, data=base64.b64encode(q.tobytes()).decode(), ridx=base64.b64encode(ridx.tobytes()).decode()),
     start=dict(zip(['lon', 'lat'], toll(*P[0]))), end=dict(zip(['lon', 'lat'], toll(*P[-1]))))
 json.dump(out, open(H / 'river.json', 'w'))
 print('len km', (S1 - S0) / 1000, 'grid', GU, GV, 'river', riv[0], riv[-1], 'start', out['start'], 'end', out['end'])
