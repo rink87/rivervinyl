@@ -7,8 +7,11 @@ for (const k of ['musical', 'speed', 'vol', 'verb', 'exag', 'glow', 'grain', 'ps
 S.musical = Math.min(Math.max(S.musical, 0), 1); S.speed = Math.min(Math.max(S.speed, 0.5), 2); S.base = 75;
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
 const dur = () => S.base / S.speed;
-const opts = () => ({ dur: dur(), musical: S.musical, bpm: 84, lo: 110, hi: 880 });
-let TB = SYN.tables(opts());
+const STY = RiverStyles.create(RD, SYN), STYLE_IDS = ['canyon', 'edm', 'country', 'pop'];
+if (!STYLE_IDS.includes(S.style)) S.style = 'canyon';
+const opts = () => ({ dur: dur(), musical: S.musical, bpm: 84, lo: 110, hi: 880, style: S.style });
+const tablesFor = (o) => o.style === 'canyon' ? SYN.tables(o) : STY.tables(o);
+let TB = tablesFor(opts());
 /* ───── audio (pre-rendered AudioBuffer; Safari: context created/resumed inside the click) ───── */
 let ctx = null, master, wet, buf = null, dirty = true, cur = null, playing = false, pos = 0, analyser, ana, level = 0;
 const snd = $('#snd'), setSnd = (k, m) => { snd.dataset.k = k; snd.textContent = 'sound: ' + m; };
@@ -25,7 +28,7 @@ function initAudio() {
 }
 function ensureBuf() {
   if (buf && !dirty && buf.sampleRate === ctx.sampleRate) return buf;
-  setSnd('busy', 'rendering…'); const r = SYN.render(opts(), ctx.sampleRate), b = ctx.createBuffer(2, r.L.length, ctx.sampleRate);
+  setSnd('busy', 'rendering…'); const o = opts(), r = o.style === 'canyon' ? SYN.render(o, ctx.sampleRate) : STY.render(o, ctx.sampleRate), b = ctx.createBuffer(2, r.L.length, ctx.sampleRate);
   b.getChannelData(0).set(r.L); b.getChannelData(1).set(r.R); buf = b; dirty = false; computeEnv(b); return b;
 }
 function start(off) {
@@ -43,7 +46,7 @@ function setPlaying(p) {
   } catch (e) { console.error(e); playing = false; setSnd('error', e.message || String(e)); }
   syncPlay();
 }
-let rt = 0; function invalidate() { dirty = true; buf = null; TB = SYN.tables(opts()); clearTimeout(rt); rt = setTimeout(() => { if (playing) { const t = curPos(); stop(cur); try { start(t); } catch (e) { setSnd('error', e.message); } } }, 150); }
+let rt = 0; function invalidate() { dirty = true; buf = null; TB = tablesFor(opts()); clearTimeout(rt); rt = setTimeout(() => { if (playing) { const t = curPos(); stop(cur); try { start(t); } catch (e) { setSnd('error', e.message); } } }, 150); }
 function syncPlay() { $('#pico').setAttribute('d', playing ? 'M2.5 1.5h3.2v11H2.5zM8.3 1.5h3.2v11H8.3z' : 'M3 1.5v11l9-5.5z'); if (playing) $('#hint').hidden = true; }
 /* ───── controls ───── */
 const CT = [
@@ -57,6 +60,11 @@ const CT = [
   { k: 'grain', l: 'Grain', min: 0, max: 1.5, step: .05, f: v => v.toFixed(2) },
 ];
 const refs = [], panel = $('#panel');
+{ const r = document.createElement('div'); r.className = 'row'; r.innerHTML = '<div class="t"><span>Style</span><em></em></div><div class="seg"></div>'; const sg = r.querySelector('.seg'), em = r.querySelector('em');
+  const info = { canyon: '84 BPM · minor pent', edm: '124 BPM · natural minor', country: '100 BPM · major pent', pop: '110 BPM · major' };
+  const bs = [['canyon', 'Canyon (original)'], ['edm', 'EDM'], ['country', 'Country'], ['pop', 'Pop']].map(([v, l]) => { const b = document.createElement('button'); b.textContent = l;
+    b.onclick = () => { S.style = v; refs.forEach(f => f()); invalidate(); save(); }; sg.appendChild(b); return [v, b]; });
+  refs.push(() => { bs.forEach(([v, b]) => b.setAttribute('aria-checked', S.style === v)); em.textContent = info[S.style]; }); panel.appendChild(r); }
 for (const c of CT) { const r = document.createElement('div'); r.className = 'row'; r.innerHTML = '<div class="t"><span></span><em></em></div><input type="range">';
   r.querySelector('span').textContent = c.l; const inp = r.querySelector('input'), em = r.querySelector('em'); inp.min = c.min; inp.max = c.max; inp.step = c.step;
   inp.oninput = () => { S[c.k] = parseFloat(inp.value); em.textContent = c.f(S[c.k]); if (c.a) invalidate(); if (ctx) { master.gain.value = S.vol; wet.gain.value = S.verb; } save(); };
@@ -91,9 +99,10 @@ const RX = RD.x.map(v => v / 1000), RZ = RD.y.map(v => -v / 1000);
 // river tangent (downstream) and per-point frame
 const TX = [], TZ = []; for (let i = 0; i < N; i++) { const a = Math.max(0, i - 6), b = Math.min(N - 1, i + 6), dx = RX[b] - RX[a], dz = RZ[b] - RZ[a], l = Math.hypot(dx, dz) || 1; TX.push(dx / l); TZ.push(dz / l); }
 // palette (Ember from the rim-to-rim pages); left wall tint / right wall tint
-const PAL = [[.03,.02,.22],[.16,.08,.55],[.55,.14,.62],[.95,.42,.2],[1,.8,.4]], CL = [.31,.86,1], CR = [1,.37,.66];
+const PAL0 = [[.03,.02,.22],[.16,.08,.55],[.55,.14,.62],[.95,.42,.2],[1,.8,.4]], CL0 = [.31,.86,1], CR0 = [1,.37,.66];
+const stp = () => S.style === 'canyon' ? { pal: PAL0, cl: CL0, cr: CR0 } : RiverStyles.STYLES[S.style];
 // visual accent times = the synth's accent onsets (same formula, read-only; audio untouched)
-function accentTimes() { const o = opts(), beat = 60 / o.bpm, x = Math.min(Math.max((o.musical - 0.1) / 0.7, 0), 1), qa = x * x * (3 - 2 * x);
+function accentTimes() { const o = opts(), beat = 60 / o.bpm, x = Math.min(Math.max((o.musical - 0.1) / 0.7, 0), 1), qa = o.style === 'canyon' ? x * x * (3 - 2 * x) : 0;   // styles keep rapids at their raw terrain times
   return SYN.accents.map(a => { const t = a.i / (N - 1) * o.dur, tq = Math.round(t / (beat / 2)) * (beat / 2); return { t: (t + (tq - t) * qa) / o.dur, i: a.i, a: Math.min(Math.max(a.d / 5, .25, ), 1.1) }; }); }
 let ACC = accentTimes();
 const GL_COMMON = `#version 300 es
@@ -269,7 +278,7 @@ function frame(now) {
   }
   const fov = .82, asp = W / H, shift = (!document.body.classList.contains('nopanel') && innerWidth > 760) ? -0.18 * Math.min(1, 1100 / innerWidth) : 0;
   MVP = mat.mul(mat.persp(fov, asp, .03, 200), mat.look([cam.ex, cam.ey, cam.ez], [cam.tx, cam.ty, cam.tz])); MVP = mat.mul(new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, shift,0,0,1]), MVP);
-  const pxU = H / (2 * Math.tan(fov / 2)), palF = new Float32Array(15); PAL.forEach((c, i) => palF.set(c, i * 3));
+  const pxU = H / (2 * Math.tan(fov / 2)), palF = new Float32Array(15); stp().pal.forEach((c, i) => palF.set(c, i * 3));
   const common = (pr) => { gl.uniformMatrix4fv(pr.u.uMVP, false, MVP); gl.uniform1f(pr.u.uExag, S.exag); if (pr.u.uPal) gl.uniform3fv(pr.u.uPal, palF); };
   gl.bindFramebuffer(gl.FRAMEBUFFER, ST.fb); gl.viewport(0, 0, W, H); gl.clearColor(0, 0, 0, 1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
   gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.LESS); gl.enable(gl.POLYGON_OFFSET_FILL); gl.polygonOffset(1.5, 1.5); gl.disable(gl.BLEND); gl.bindVertexArray(vaoT);
@@ -280,7 +289,7 @@ function frame(now) {
   gl.disable(gl.POLYGON_OFFSET_FILL);
   const pp = P.pts, u = pp.u; gl.useProgram(pp.p); common(pp);
   gl.uniform3f(u.uDot, dx, 0, dz); gl.uniform1f(u.uS, t); gl.uniform1f(u.uTime, now / 1000); gl.uniform1f(u.uPxU, pxU); gl.uniform1f(u.uPS, S.psize); gl.uniform1f(u.uLvL, lvL); gl.uniform1f(u.uLvR, lvR);
-  gl.uniform1f(u.uShockAge, shAge); gl.uniform1f(u.uShockS, sh ? sh.i / (N - 1) : -9); gl.uniform1f(u.uShockA, sh ? sh.a : 0); gl.uniform3fv(u.uCL, CL); gl.uniform3fv(u.uCR, CR); gl.uniform1f(u.uInt, S.contours ? .6 : .85);
+  gl.uniform1f(u.uShockAge, shAge); gl.uniform1f(u.uShockS, sh ? sh.i / (N - 1) : -9); gl.uniform1f(u.uShockA, sh ? sh.a : 0); gl.uniform3fv(u.uCL, stp().cl); gl.uniform3fv(u.uCR, stp().cr); gl.uniform1f(u.uInt, S.contours ? .6 : .85);
   gl.drawArrays(gl.POINTS, 0, nT);
   gl.disable(gl.DEPTH_TEST);
   gl.useProgram(P.spr.p); common(P.spr); gl.uniform1f(P.spr.u.uS, t); gl.uniform1f(P.spr.u.uDpr, dpr); gl.bindVertexArray(vaoR); gl.drawArrays(gl.POINTS, 0, vaoR.n);

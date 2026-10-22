@@ -1,0 +1,92 @@
+{
+ "edm": {
+  "bpm": 124,
+  "scale": "naturalMinor",
+  "renderMs": 2619,
+  "wav": {
+   "peak": 0.845,
+   "rmsL": 0.202,
+   "rmsR": 0.201,
+   "corrLR": 0.726
+  },
+  "notesLR": [
+   191,
+   190
+  ],
+  "maxRawOnsetDiff_s": 0,
+  "maxRawPitchDiff_cents": 0,
+  "maxQuantShift_s": 0.097,
+  "halfGrid_s": 0.121,
+  "maxSnap_semitones": 0.94,
+  "contourReversals": "0/379",
+  "accents": 24,
+  "maxAccentDiff_s": 0,
+  "chordsPerBar": "210323222302221102333310000301331012030",
+  "liftBars": "11/39",
+  "drops": [
+   0.68,
+   5.93,
+   13.06
+  ]
+ },
+ "country": {
+  "bpm": 100,
+  "scale": "majorPent",
+  "renderMs": 955,
+  "wav": {
+   "peak": 0.75,
+   "rmsL": 0.201,
+   "rmsR": 0.198,
+   "corrLR": 0.655
+  },
+  "notesLR": [
+   191,
+   190
+  ],
+  "maxRawOnsetDiff_s": 0,
+  "maxRawPitchDiff_cents": 0,
+  "maxQuantShift_s": 0.12,
+  "halfGrid_s": 0.15,
+  "maxSnap_semitones": 1.38,
+  "contourReversals": "0/379",
+  "accents": 24,
+  "maxAccentDiff_s": 0,
+  "chordsPerBar": "00023222122111233300000032103110",
+  "liftBars": "9/32",
+  "drops": [
+   0.68,
+   5.93,
+   13.06
+  ]
+ },
+ "pop": {
+  "bpm": 110,
+  "scale": "major",
+  "renderMs": 3607,
+  "wav": {
+   "peak": 0.757,
+   "rmsL": 0.235,
+   "rmsR": 0.238,
+   "corrLR": 0.224
+  },
+  "notesLR": [
+   191,
+   190
+  ],
+  "maxRawOnsetDiff_s": 0,
+  "maxRawPitchDiff_cents": 0,
+  "maxQuantShift_s": 0.107,
+  "halfGrid_s": 0.136,
+  "maxSnap_semitones": 0.94,
+  "contourReversals": "0/379",
+  "accents": 24,
+  "maxAccentDiff_s": 0,
+  "chordsPerBar": "00232223332230123331000010121012030",
+  "liftBars": "10/35",
+  "drops": [
+   0.68,
+   5.93,
+   13.06
+  ]
+ }
+}
