@@ -7,10 +7,11 @@ for (const k of ['musical', 'speed', 'vol', 'verb', 'exag', 'glow', 'grain', 'ps
 S.musical = Math.min(Math.max(S.musical, 0), 1); S.speed = Math.min(Math.max(S.speed, 0.5), 2); S.base = 75;
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
 const dur = () => S.base / S.speed;
-const STY = RiverStyles.create(RD, SYN), STYLE_IDS = ['canyon', 'edm', 'country', 'pop'];
+const STY = RiverStyles.create(RD, SYN), STR = RiverStrata.create(RD, SYN), STYLE_IDS = ['canyon', 'edm', 'country', 'pop', 'strata'];
+let BANDENV = null;
 if (!STYLE_IDS.includes(S.style)) S.style = 'canyon';
 const opts = () => ({ dur: dur(), musical: S.musical, bpm: 84, lo: 110, hi: 880, style: S.style });
-const tablesFor = (o) => o.style === 'canyon' ? SYN.tables(o) : STY.tables(o);
+const tablesFor = (o) => o.style === 'canyon' ? SYN.tables(o) : o.style === 'strata' ? SYN.tables(Object.assign({}, o, { musical: 0 })) : STY.tables(o);   // strata readout shows the raw wall pitch
 let TB = tablesFor(opts());
 /* ───── audio (pre-rendered AudioBuffer; Safari: context created/resumed inside the click) ───── */
 let ctx = null, master, wet, buf = null, dirty = true, cur = null, playing = false, pos = 0, analyser, ana, level = 0;
@@ -28,8 +29,8 @@ function initAudio() {
 }
 function ensureBuf() {
   if (buf && !dirty && buf.sampleRate === ctx.sampleRate) return buf;
-  setSnd('busy', 'rendering…'); const o = opts(), r = o.style === 'canyon' ? SYN.render(o, ctx.sampleRate) : STY.render(o, ctx.sampleRate), b = ctx.createBuffer(2, r.L.length, ctx.sampleRate);
-  b.getChannelData(0).set(r.L); b.getChannelData(1).set(r.R); buf = b; dirty = false; computeEnv(b); return b;
+  setSnd('busy', 'rendering…'); const o = opts(), r = o.style === 'canyon' ? SYN.render(o, ctx.sampleRate) : o.style === 'strata' ? STR.render(o, ctx.sampleRate) : STY.render(o, ctx.sampleRate), b = ctx.createBuffer(2, r.L.length, ctx.sampleRate);
+  b.getChannelData(0).set(r.L); b.getChannelData(1).set(r.R); BANDENV = r.bandEnv ? { e: r.bandEnv, n: r.bandEnv[0].length } : null; buf = b; dirty = false; computeEnv(b); return b;
 }
 function start(off) {
   const b = ensureBuf(), s = ctx.createBufferSource(), g = ctx.createGain(); s.buffer = b; s.loop = !!S.loop; s.connect(g); g.connect(master); g.connect(master._conv);
@@ -61,8 +62,8 @@ const CT = [
 ];
 const refs = [], panel = $('#panel');
 { const r = document.createElement('div'); r.className = 'row'; r.innerHTML = '<div class="t"><span>Style</span><em></em></div><div class="seg"></div>'; const sg = r.querySelector('.seg'), em = r.querySelector('em');
-  const info = { canyon: '84 BPM · minor pent', edm: '124 BPM · natural minor', country: '100 BPM · major pent', pop: '110 BPM · major' };
-  const bs = [['canyon', 'Canyon (original)'], ['edm', 'EDM'], ['country', 'Country'], ['pop', 'Pop']].map(([v, l]) => { const b = document.createElement('button'); b.textContent = l;
+  const info = { canyon: '84 BPM · minor pent', edm: '124 BPM · natural minor', country: '100 BPM · major pent', pop: '110 BPM · major', strata: '84 BPM · 4 height bands (approx.)' };
+  const bs = [['canyon', 'Canyon (original)'], ['edm', 'EDM'], ['country', 'Country'], ['pop', 'Pop'], ['strata', 'Strata']].map(([v, l]) => { const b = document.createElement('button'); b.textContent = l;
     b.onclick = () => { S.style = v; refs.forEach(f => f()); invalidate(); save(); }; sg.appendChild(b); return [v, b]; });
   refs.push(() => { bs.forEach(([v, b]) => b.setAttribute('aria-checked', S.style === v)); em.textContent = info[S.style]; }); panel.appendChild(r); }
 for (const c of CT) { const r = document.createElement('div'); r.className = 'row'; r.innerHTML = '<div class="t"><span></span><em></em></div><input type="range">';
@@ -100,7 +101,7 @@ const RX = RD.x.map(v => v / 1000), RZ = RD.y.map(v => -v / 1000);
 const TX = [], TZ = []; for (let i = 0; i < N; i++) { const a = Math.max(0, i - 6), b = Math.min(N - 1, i + 6), dx = RX[b] - RX[a], dz = RZ[b] - RZ[a], l = Math.hypot(dx, dz) || 1; TX.push(dx / l); TZ.push(dz / l); }
 // palette (Ember from the rim-to-rim pages); left wall tint / right wall tint
 const PAL0 = [[.03,.02,.22],[.16,.08,.55],[.55,.14,.62],[.95,.42,.2],[1,.8,.4]], CL0 = [.31,.86,1], CR0 = [1,.37,.66];
-const stp = () => S.style === 'canyon' ? { pal: PAL0, cl: CL0, cr: CR0 } : RiverStyles.STYLES[S.style];
+const stp = () => S.style === 'canyon' || S.style === 'strata' ? { pal: PAL0, cl: CL0, cr: CR0 } : RiverStyles.STYLES[S.style];
 // visual accent times = the synth's accent onsets (same formula, read-only; audio untouched)
 function accentTimes() { const o = opts(), beat = 60 / o.bpm, x = Math.min(Math.max((o.musical - 0.1) / 0.7, 0), 1), qa = o.style === 'canyon' ? x * x * (3 - 2 * x) : 0;   // styles keep rapids at their raw terrain times
   return SYN.accents.map(a => { const t = a.i / (N - 1) * o.dur, tq = Math.round(t / (beat / 2)) * (beat / 2); return { t: (t + (tq - t) * qa) / o.dur, i: a.i, a: Math.min(Math.max(a.d / 5, .25, ), 1.1) }; }); }
@@ -114,7 +115,7 @@ float wy(float e){ return (e-${Y0}.)*0.001*uExag; }
 const TER_VS = GL_COMMON + `
 layout(location=0) in vec4 aP; layout(location=1) in vec4 aQ;   // aP: x, elev, z, slope · aQ: side(+1 L,-1 R), s (0..1 along river), dist km, rnd
 uniform vec3 uDot; uniform float uS, uTime, uPxU, uPS, uLvL, uLvR, uShockAge, uShockS, uShockA, uExagX;
-uniform vec3 uCL, uCR;
+uniform vec3 uCL, uCR; uniform float uStrata; uniform vec4 uBand;
 out vec3 vCol; out float vB;
 void main(){
   vec3 w=vec3(aP.x,wy(aP.y),aP.z); gl_Position=uMVP*vec4(w,1.);
@@ -126,10 +127,15 @@ void main(){
   float pulse=lv*wall*(0.1+1.5*wallNear);
   float ds=(aQ.y-uShockS)*48.;                                 // shockwave: ring expanding from the rapid
   float r=sqrt(ds*ds+aQ.z*aQ.z), ring=exp(-pow((r-uShockAge*3.2)/.22,2.))*exp(-uShockAge*2.2)*uShockA;
-  float tw=0.82+0.18*sin(uTime*1.7+aQ.w*6.2831);
+  float tw=0.82+0.18*sin(uTime*1.7+fract(aQ.w)*6.2831);
   vec3 base=pal((aP.y-${EMIN}.)/${EMAX - EMIN}.);
   vec3 tint=side>0.?uCL:uCR;
   vCol=base*(0.1+0.8*aP.w)*tw + tint*pulse*0.45 + base*near*0.5 + vec3(1.,.85,.7)*ring*1.6;
+  if(uStrata>0.5){ float hA=floor(aQ.w)*10.;   // approximate strata bands by height above the river
+    vec3 bc = hA<300. ? vec3(.35,.3,.75) : hA<650. ? vec3(.35,.75,.45) : hA<1000. ? vec3(1.,.35,.2) : vec3(1.,.9,.65);
+    float bl = hA<300. ? uBand.x : hA<650. ? uBand.y : hA<1000. ? uBand.z : uBand.w;
+    float edge = 1.-smoothstep(0.,14.,min(min(abs(hA-300.),abs(hA-650.)),abs(hA-1000.)));
+    vCol = mix(vCol, bc*(0.12+0.8*aP.w)*tw*(0.7+1.6*bl), 0.55) + bc*edge*0.35; }
   vB=1.-smoothstep(2.6,3.2,aQ.z);
   gl_PointSize=clamp(uPS*0.045*uPxU/gl_Position.w*(0.7+0.7*aP.w)*(1.+pulse*.5+ring),1.1,16.);
 }`;
@@ -212,7 +218,7 @@ function initGL() {
     const x = (-GRD.w / 2 + i * cw) / 1000, z = -(-GRD.h / 2 + j * chh) / 1000, ddx = x - RX[ri], ddz = z - RZ[ri];
     const side = (TX[ri] * ddz - TZ[ri] * ddx) < 0 ? 1 : -1;   // left of the downstream tangent (world z = -north)
     rr = (rr * 16807) % 2147483647;
-    V.set([x, e, z, sl, side, ri / (N - 1), Math.hypot(ddx, ddz), rr / 2147483647], o); }
+    V.set([x, e, z, sl, side, ri / (N - 1), Math.hypot(ddx, ddz), rr / 2147483647 * 0.999 + Math.round(Math.min(Math.max(e - RD.river[ri], 0), 2500) / 10)], o); }   // w: int part = height above river /10 m, frac = twinkle seed
   nT = cnt;
   const IX = []; for (let j = 0; j < gv - 1; j++) for (let i = 0; i < gu - 1; i++) { const a = map[j * gu + i], b = map[j * gu + i + 1], c = map[(j + 1) * gu + i], d = map[(j + 1) * gu + i + 1];
     if (a >= 0 && b >= 0 && c >= 0 && d >= 0) IX.push(a, c, b, b, c, d); }
@@ -249,13 +255,15 @@ let ENV = null; const ENVR = 120;
 function computeEnv(b) { const L = b.getChannelData(0), R = b.getChannelData(1), hop = Math.floor(b.sampleRate / ENVR), n = Math.floor(L.length / hop), eL = new Float32Array(n), eR = new Float32Array(n);
   for (let k = 0; k < n; k++) { let a = 0, c = 0; for (let i = k * hop; i < (k + 1) * hop; i += 4) { a += L[i] * L[i]; c += R[i] * R[i]; } eL[k] = Math.sqrt(a / (hop / 4)); eR[k] = Math.sqrt(c / (hop / 4)); }
   ENV = { eL, eR, n }; ACC = accentTimes(); }
-let lvL = 0, lvR = 0, lt = 0, flash = 0;
+let lvL = 0, lvR = 0, lt = 0, flash = 0; const BL4 = [0, 0, 0, 0];
 const drag = { on: false }, ptrs = new Map(); let pinch0 = 0;
 function frame(now) {
   requestAnimationFrame(frame); const dt = Math.min(.05, (now - (lt || now)) / 1000); lt = now;
   let t = pos; if (playing && cur && !scrub) { t = curPos(); pos = t; }
   if (playing && ENV) { const k = Math.min(ENV.n - 1, Math.floor(t * ENV.n)); lvL += (Math.min(1, ENV.eL[k] * 3.2) - lvL) * .3; lvR += (Math.min(1, ENV.eR[k] * 3.2) - lvR) * .3; } else { lvL *= .92; lvR *= .92; }
   $('#barL').style.opacity = .4 + lvL; $('#barR').style.opacity = .4 + lvR;
+  { const show = S.style === 'strata'; $('#strata').hidden = !show;
+    if (show) for (let k = 0; k < 4; k++) { const v = playing && BANDENV ? BANDENV.e[k][Math.min(BANDENV.n - 1, Math.floor(t * BANDENV.n))] * (0.5 + Math.max(lvL, lvR)) : 0; BL4[k] += (v - BL4[k]) * .25; $('#sb' + k).style.width = Math.min(100, BL4[k] * 100) + '%'; } }
   readout(t); if (!gl) return;
   const fi = t * (N - 1), i0 = Math.min(N - 2, fi | 0), f = fi - i0, dx = RX[i0] + (RX[i0 + 1] - RX[i0]) * f, dz = RZ[i0] + (RZ[i0 + 1] - RZ[i0]) * f, de = RD.river[i0] + (RD.river[i0 + 1] - RD.river[i0]) * f;
   // most recent rapid accent
@@ -289,7 +297,7 @@ function frame(now) {
   gl.disable(gl.POLYGON_OFFSET_FILL);
   const pp = P.pts, u = pp.u; gl.useProgram(pp.p); common(pp);
   gl.uniform3f(u.uDot, dx, 0, dz); gl.uniform1f(u.uS, t); gl.uniform1f(u.uTime, now / 1000); gl.uniform1f(u.uPxU, pxU); gl.uniform1f(u.uPS, S.psize); gl.uniform1f(u.uLvL, lvL); gl.uniform1f(u.uLvR, lvR);
-  gl.uniform1f(u.uShockAge, shAge); gl.uniform1f(u.uShockS, sh ? sh.i / (N - 1) : -9); gl.uniform1f(u.uShockA, sh ? sh.a : 0); gl.uniform3fv(u.uCL, stp().cl); gl.uniform3fv(u.uCR, stp().cr); gl.uniform1f(u.uInt, S.contours ? .6 : .85);
+  gl.uniform1f(u.uShockAge, shAge); gl.uniform1f(u.uShockS, sh ? sh.i / (N - 1) : -9); gl.uniform1f(u.uShockA, sh ? sh.a : 0); gl.uniform3fv(u.uCL, stp().cl); gl.uniform3fv(u.uCR, stp().cr); gl.uniform1f(u.uStrata, S.style === 'strata' ? 1 : 0); gl.uniform4f(u.uBand, BL4[0], BL4[1], BL4[2], BL4[3]); gl.uniform1f(u.uInt, S.contours ? .6 : .85);
   gl.drawArrays(gl.POINTS, 0, nT);
   gl.disable(gl.DEPTH_TEST);
   gl.useProgram(P.spr.p); common(P.spr); gl.uniform1f(P.spr.u.uS, t); gl.uniform1f(P.spr.u.uDpr, dpr); gl.bindVertexArray(vaoR); gl.drawArrays(gl.POINTS, 0, vaoR.n);

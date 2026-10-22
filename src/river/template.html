@@ -22,6 +22,7 @@ canvas{position:fixed;inset:0;width:100%;height:100%;cursor:grab;touch-action:no
 .sw i{width:28px;height:16px;border-radius:8px;background:#444;position:relative}.sw i:after{content:"";position:absolute;left:2px;top:2px;width:12px;height:12px;border-radius:50%;background:#bbb;transition:.15s}
 .sw[aria-checked=true] i{background:#3a8fd0}.sw[aria-checked=true] i:after{left:14px;background:#fff}
 .seg{display:flex;gap:3px;margin-top:5px;flex-wrap:wrap}.seg button{flex:1;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#ccc;border-radius:6px;padding:5px 4px;cursor:pointer;font:inherit;font-size:11px}.seg button[aria-checked=true]{background:#3a8fd0;color:#fff}
+#strata{left:16px;bottom:40px;width:270px;font-size:10.5px}#strata .sh{opacity:.75;margin-bottom:4px}#strata .sh i{font-style:normal;opacity:.6}#strata .sr{margin:3px 0}#strata .sr i{display:block;height:4px;background:rgba(255,255,255,.08);border-radius:2px;margin-top:2px}#strata s{display:block;height:100%;width:0;border-radius:2px;box-shadow:0 0 6px currentColor}
 .note{opacity:.65;font-size:11px;line-height:1.45}
 #hint{position:fixed;left:50%;bottom:70px;transform:translateX(-50%);opacity:.6;pointer-events:none}
 #msg{position:fixed;left:50%;top:45%;transform:translate(-50%,-50%);background:#222;padding:14px 18px;border-radius:10px;max-width:420px}
@@ -32,6 +33,11 @@ canvas{position:fixed;inset:0;width:100%;height:100%;cursor:grab;touch-action:no
 <div class="cap" id="read"><div><b>Position</b><span id="rP"></span></div><div><b>River</b><span id="rE"></span></div><div><b>Left</b><span id="rLw"></span></div><div><b>Right</b><span id="rRw"></span></div>
 <div class="lr"><span>L</span><i id="barL"></i></div><div class="lr"><span>R</span><i id="barR"></i></div></div>
 <div class="cap" id="cap-info"></div>
+<div class="cap" id="strata" hidden><div class="sh">Strata bands <i>(approximate, by height above river)</i></div>
+<div class="sr"><span style="color:#fff1c8">1000 m+ Coconino / Kaibab rim · bell</span><i><s id="sb3" style="background:#ffe6a6"></s></i></div>
+<div class="sr"><span style="color:#ff8a66">650–1000 m Redwall / Supai · brass pad</span><i><s id="sb2" style="background:#ff5a33"></s></i></div>
+<div class="sr"><span style="color:#8fe0a0">300–650 m Tonto / Muav · pluck</span><i><s id="sb1" style="background:#5ac070"></s></i></div>
+<div class="sr"><span style="color:#a99bff">0–300 m Inner Gorge schist · drone</span><i><s id="sb0" style="background:#7a6aff"></s></i></div></div>
 <div id="hint">press play (or space) · headphones recommended · drag to orbit, scroll to zoom</div>
 <div id="bar"><button id="play" aria-label="Play"><svg viewBox="0 0 14 14"><path id="pico" d="M3 1.5v11l9-5.5z"/></svg></button><input id="seek" type="range" min="0" max="1000" value="0"><span id="time"></span></div>
 <div id="snd" data-k="idle">sound: tap play to start</div><button id="ptoggle">Controls</button><div id="panel"></div><div id="msg" hidden></div>

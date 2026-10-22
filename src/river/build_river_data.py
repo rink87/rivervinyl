@@ -66,6 +66,20 @@ def side(sign):
     rough = np.sqrt(((seg - sm)[:, 2:] ** 2).mean(1))
     return dict(h500=h500, h2k=h2k, hmax=hmax, steep=steep, dist300=wd, rough=rough)
 Ls, Rs = side(+1), side(-1)
+# STRATA prototype: height bands above the river (approximate stand-ins for rock layers, NOT mapped geology)
+BANDS = [(0, 300), (300, 650), (650, 1000), (1000, 9999)]
+def bands(sign):
+    prof = XS[:, mid::1] if sign > 0 else XS[:, mid::-1]; rel = prof - riv[:, None]; out = []
+    for lo, hi in BANDS:
+        inb = (rel >= lo) & (rel < hi); pres = inb.sum(1) * STEP                       # horizontal extent of the wall inside the band (m, within 4 km)
+        gr = np.abs(np.gradient(rel, STEP, axis=1)); stp = np.where(inb.any(1), (gr * inb).sum(1) / np.maximum(inb.sum(1), 1), 0)
+        steep = np.degrees(np.arctan(stp))
+        res = rel - np.stack([np.convolve(np.pad(r, 7, mode='edge'), np.ones(15) / 15, 'valid') for r in rel])
+        rough = np.sqrt(np.where(inb, res ** 2, 0).sum(1) / np.maximum(inb.sum(1), 1))
+        entry = np.where(inb.any(1), inb.argmax(1) * STEP, 4000.0)                      # how far out from the river the band starts (its contour)
+        out.append(dict(pres=pres, steep=steep, rough=rough, entry=entry))
+    return out
+BL, BR = bands(+1), bands(-1)
 width300 = Ls['dist300'] + Rs['dist300']
 # rapids from the data: drop over the next 250 m of river
 dn = int(250 / (ss[1] - ss[0])); drop = np.concatenate([riv[:-dn] - riv[dn:], np.zeros(dn)])
@@ -91,7 +105,7 @@ r1 = lambda a: [round(float(v), 1) for v in a]
 out = dict(name='Colorado River · Hance Rapid → Serpentine Rapid', source='USGS NHD flowline (hydro.nationalmap.gov), GNIS names (carto.nationalmap.gov), AWS terrarium z13 terrain',
     N=N, ds=float(ss[1] - ss[0]), s0=S0, lat0=LAT0, lon0=LON0,
     x=r1(P[:, 0] - (xmin + xmax) / 2), y=r1(P[:, 1] - (ymin + ymax) / 2), river=r1(riv), river_raw=r1(riv_raw), drop=r1(drop), width300=r1(width300),
-    L={k: r1(v) for k, v in Ls.items()}, R={k: r1(v) for k, v in Rs.items()}, marks=marks,
+    L={k: r1(v) for k, v in Ls.items()}, R={k: r1(v) for k, v in Rs.items()}, strata=dict(bands=[[lo, hi] for lo, hi in BANDS], names=['Inner Gorge schist', 'Tonto / Muav slopes', 'Redwall / Supai cliffs', 'Coconino / Kaibab rim'], approx=True, L=[{k: r1(v) for k, v in d.items()} for d in BL], R=[{k: r1(v) for k, v in d.items()} for d in BR]), marks=marks,
     grid=dict(GU=GU, GV=GV, w=float(xmax - xmin), h=float(ymax - ymin), off=500, sc=20, data=base64.b64encode(q.tobytes()).decode(), ridx=base64.b64encode(ridx.tobytes()).decode()),
     start=dict(zip(['lon', 'lat'], toll(*P[0]))), end=dict(zip(['lon', 'lat'], toll(*P[-1]))))
 json.dump(out, open(H / 'river.json', 'w'))

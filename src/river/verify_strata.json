@@ -1,0 +1,135 @@
+{
+ "full": {
+  "peak": 0.724,
+  "rmsL": 0.1576,
+  "rmsR": 0.1491,
+  "corrLR": 0.424
+ },
+ "accents": 24,
+ "maxAccentDiff_s": 0,
+ "contourReversals": "0/618",
+ "solos": [
+  {
+   "band": 1,
+   "register_Hz": [
+    41.2,
+    82.4
+   ],
+   "wav30s": {
+    "peak": 0.536,
+    "rmsL": 0.0934,
+    "rmsR": 0.1033,
+    "corrLR": 0.706
+   },
+   "centroid_Hz": 96,
+   "energyInOwnRegister_pct": 55.4
+  },
+  {
+   "band": 2,
+   "register_Hz": [
+    110,
+    220
+   ],
+   "wav30s": {
+    "peak": 0.372,
+    "rmsL": 0.0772,
+    "rmsR": 0.0719,
+    "corrLR": -0.162
+   },
+   "centroid_Hz": 208,
+   "energyInOwnRegister_pct": 92.3
+  },
+  {
+   "band": 3,
+   "register_Hz": [
+    261.6,
+    523.3
+   ],
+   "wav30s": {
+    "peak": 0.34,
+    "rmsL": 0.0687,
+    "rmsR": 0.0719,
+    "corrLR": -0.001
+   },
+   "centroid_Hz": 448,
+   "energyInOwnRegister_pct": 78.5
+  },
+  {
+   "band": 4,
+   "register_Hz": [
+    659.3,
+    1318.5
+   ],
+   "wav30s": {
+    "peak": 0.272,
+    "rmsL": 0.0094,
+    "rmsR": 0.0353,
+    "corrLR": -0.073
+   },
+   "centroid_Hz": 1386,
+   "energyInOwnRegister_pct": 65.3
+  }
+ ],
+ "overlap": {
+  "b1-b2": 0.025,
+  "b1-b3": 0.001,
+  "b1-b4": 0,
+  "b2-b3": 0.014,
+  "b2-b4": 0.001,
+  "b3-b4": 0.124
+ },
+ "presence": {
+  "L": [
+   {
+    "band": 1,
+    "name": "Inner Gorge schist",
+    "present_pct": 100,
+    "median_extent_m": 640
+   },
+   {
+    "band": 2,
+    "name": "Tonto / Muav slopes",
+    "present_pct": 100,
+    "median_extent_m": 2060
+   },
+   {
+    "band": 3,
+    "name": "Redwall / Supai cliffs",
+    "present_pct": 93,
+    "median_extent_m": 760
+   },
+   {
+    "band": 4,
+    "name": "Coconino / Kaibab rim",
+    "present_pct": 51,
+    "median_extent_m": 20
+   }
+  ],
+  "R": [
+   {
+    "band": 1,
+    "name": "Inner Gorge schist",
+    "present_pct": 100,
+    "median_extent_m": 480
+   },
+   {
+    "band": 2,
+    "name": "Tonto / Muav slopes",
+    "present_pct": 100,
+    "median_extent_m": 2480
+   },
+   {
+    "band": 3,
+    "name": "Redwall / Supai cliffs",
+    "present_pct": 83,
+    "median_extent_m": 640
+   },
+   {
+    "band": 4,
+    "name": "Coconino / Kaibab rim",
+    "present_pct": 38,
+    "median_extent_m": 0
+   }
+  ]
+ }
+}
