@@ -1,0 +1,150 @@
+{
+ "canyon": {
+  "original": {
+   "rms_dB": -18.1,
+   "tempo_bpm": 166.7,
+   "onsets_per_s": 3.25,
+   "centroid_Hz": 312,
+   "low_dB": -1.9,
+   "mid_dB": -4.6,
+   "high_dB": -21.1
+  },
+  "new_preset": {
+   "rms_dB": -17.4,
+   "tempo_bpm": 166.7,
+   "onsets_per_s": 3.59,
+   "centroid_Hz": 309,
+   "low_dB": -3.4,
+   "mid_dB": -2.7,
+   "high_dB": -26.3
+  },
+  "new_vs_original": {
+   "onsetMatch": 0.84,
+   "octaveProfileRMSdiff_dB": 4.7
+  },
+  "previous_preset": {
+   "rms_dB": -11.6,
+   "tempo_bpm": 83.4,
+   "onsets_per_s": 3.33,
+   "centroid_Hz": 346,
+   "low_dB": -2.7,
+   "mid_dB": -3.4,
+   "high_dB": -26.1
+  },
+  "previous_vs_original": {
+   "onsetMatch": 0.35,
+   "octaveProfileRMSdiff_dB": 6.5
+  }
+ },
+ "edm": {
+  "original": {
+   "rms_dB": -14.6,
+   "tempo_bpm": 123.0,
+   "onsets_per_s": 2.11,
+   "centroid_Hz": 233,
+   "low_dB": -0.6,
+   "mid_dB": -9.4,
+   "high_dB": -19.6
+  },
+  "new_preset": {
+   "rms_dB": -15.4,
+   "tempo_bpm": 62.3,
+   "onsets_per_s": 3.64,
+   "centroid_Hz": 267,
+   "low_dB": -1.5,
+   "mid_dB": -5.5,
+   "high_dB": -20.4
+  },
+  "new_vs_original": {
+   "onsetMatch": 0.96,
+   "octaveProfileRMSdiff_dB": 3.0
+  },
+  "previous_preset": {
+   "rms_dB": -15.2,
+   "tempo_bpm": 83.4,
+   "onsets_per_s": 5.37,
+   "centroid_Hz": 364,
+   "low_dB": -2.1,
+   "mid_dB": -4.4,
+   "high_dB": -15.9
+  },
+  "previous_vs_original": {
+   "onsetMatch": 0.84,
+   "octaveProfileRMSdiff_dB": 4.4
+  }
+ },
+ "country": {
+  "original": {
+   "rms_dB": -14.8,
+   "tempo_bpm": 67.1,
+   "onsets_per_s": 4.91,
+   "centroid_Hz": 550,
+   "low_dB": -1.0,
+   "mid_dB": -8.9,
+   "high_dB": -11.6
+  },
+  "new_preset": {
+   "rms_dB": -15.3,
+   "tempo_bpm": 99.4,
+   "onsets_per_s": 4.01,
+   "centroid_Hz": 230,
+   "low_dB": -0.9,
+   "mid_dB": -7.3,
+   "high_dB": -20.9
+  },
+  "new_vs_original": {
+   "onsetMatch": 0.62,
+   "octaveProfileRMSdiff_dB": 7.7
+  },
+  "previous_preset": {
+   "rms_dB": -13.3,
+   "tempo_bpm": 166.7,
+   "onsets_per_s": 2.75,
+   "centroid_Hz": 445,
+   "low_dB": -1.8,
+   "mid_dB": -4.9,
+   "high_dB": -19.1
+  },
+  "previous_vs_original": {
+   "onsetMatch": 0.39,
+   "octaveProfileRMSdiff_dB": 7.0
+  }
+ },
+ "pop": {
+  "original": {
+   "rms_dB": -14.7,
+   "tempo_bpm": 110.0,
+   "onsets_per_s": 3.47,
+   "centroid_Hz": 254,
+   "low_dB": -1.5,
+   "mid_dB": -5.3,
+   "high_dB": -24.5
+  },
+  "new_preset": {
+   "rms_dB": -15.3,
+   "tempo_bpm": 55.6,
+   "onsets_per_s": 3.85,
+   "centroid_Hz": 292,
+   "low_dB": -3.2,
+   "mid_dB": -2.9,
+   "high_dB": -27.6
+  },
+  "new_vs_original": {
+   "onsetMatch": 0.89,
+   "octaveProfileRMSdiff_dB": 3.3
+  },
+  "previous_preset": {
+   "rms_dB": -14.0,
+   "tempo_bpm": 83.4,
+   "onsets_per_s": 2.29,
+   "centroid_Hz": 367,
+   "low_dB": -3.5,
+   "mid_dB": -2.7,
+   "high_dB": -19.5
+  },
+  "previous_vs_original": {
+   "onsetMatch": 0.3,
+   "octaveProfileRMSdiff_dB": 6.5
+  }
+ }
+}

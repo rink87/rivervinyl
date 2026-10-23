@@ -32,6 +32,9 @@ SETS = {
   'kick':      ('hit', ['VSCO 1 Percussion/drums/bass/bdrum_muted_ff_1.wav', 'VSCO 1 Percussion/drums/bass/bdrum_muted_fff_1.wav']),
   'snare':     ('hit', ['Percussion/Snare2-HitSN_v5_rr1_Sum.wav', 'Percussion/Snare2-HitSN_v5_rr2_Sum.wav']),
   'shaker':    ('hit', ["VSCO 1 Percussion/varWood/Camo's Shaker/shake%d.wav" % i for i in (1, 2, 3, 4)]),
+  'crash':     ('perc', ['VSCO 1 Percussion/varMetal/Cymbals/clash/crash_hit_ff_tight.wav']),
+  'cabasa':    ('hit', ['VSCO 1 Percussion/varMetal/various/cabasa_%d.wav' % i for i in (1, 2, 3, 4)]),
+  'snareTap':  ('hit', ['Percussion/Snare2-taps_v2_rr1_Sum.wav', 'Percussion/Snare2-taps_v2_rr2_Sum.wav']),
   'tamb':      ('hit', ['Percussion/Tamb1-Hit_v1_rr1_Sum.wav', 'Percussion/Tamb1-Hit_v1_rr2_Sum.wav']),
 }
 SR = 32000

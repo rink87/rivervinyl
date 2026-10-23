@@ -1,6 +1,8 @@
 (() => {
 'use strict';
-const $ = (s) => document.querySelector(s), RD = RIVER, N = RD.N, SYN = RiverSynth.create(RD);
+const RIVERS = { canyon: { d: RIVER, label: 'Grand Canyon (Colorado)' }, mississippi: { d: typeof RIVER_MS !== 'undefined' ? RIVER_MS : null, label: 'Upper Mississippi (Driftless)' } };
+const RIVER_ID = (() => { let r = null; try { r = new URLSearchParams(location.search).get('river'); } catch (e) {} if (!r) try { r = localStorage.getItem('river-vinyl-river'); } catch (e) {} return RIVERS[r] && RIVERS[r].d ? r : 'canyon'; })();
+const $ = (s) => document.querySelector(s), RD = RIVERS[RIVER_ID].d, N = RD.N, SYN = RiverSynth.create(RD);
 window.__T = window.__T || {};
 const KEY = 'canyon-river-v2', DEF = { style: 'orch', preset: 'orchestra', musical: 0.6, speed: 1, base: 75, vol: 0.9, verb: 0.25, exag: 2.2, orbit: false, contours: true, loop: true, labels: true, glow: 1, grain: .5, psize: 1 };
 let S = Object.assign({}, DEF); try { Object.assign(S, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) {}
@@ -8,7 +10,7 @@ for (const k of ['musical', 'speed', 'vol', 'verb', 'exag', 'glow', 'grain', 'ps
 S.musical = Math.min(Math.max(S.musical, 0), 1); S.speed = Math.min(Math.max(S.speed, 0.5), 2); S.base = 75;
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
 const dur = () => S.base / S.speed;
-const STY = RiverStyles.create(RD, SYN), STR = RiverStrata.create(RD, SYN), ORC = RiverOrch.create(RD, SYN, STR), STYLE_IDS = ['canyon', 'edm', 'country', 'pop', 'strata', 'orch'];
+const STY = RiverStyles.create(RD, SYN), STR = RiverStrata.create(RD, SYN), ORC = RiverOrch.create(RD, SYN, STR), ARR = RiverArr.create(RD, SYN, STY, RiverOrch), STYLE_IDS = ['canyon', 'edm', 'country', 'pop', 'strata', 'orch'];
 const isBand = () => S.style === 'strata' || S.style === 'orch';   // both use the 4 height bands
 let BANDENV = null; const BLAB = { s: null, o: [] };   // band-meter labels (Strata synth names vs orchestra sections)
 if (!STYLE_IDS.includes(S.style)) S.style = 'orch';
@@ -55,8 +57,9 @@ function decodeOrch2() {
       .catch(e => { ORC2_ERR = (e && e.message) || String(e); console.error('instrument decode failed', e); refs.forEach(f => f()); });
   } catch (e) { ORC2_ERR = e.message; }
 }
-const instOK = () => ORC_READY && RiverOrch.has(RiverOrch.setsFor(S.inst));
-const opts = () => Object.assign({ dur: dur(), musical: S.musical, bpm: 84, lo: 110, hi: 880, style: S.style }, S.style === 'strata' ? { band3Voice: S.b3, band2Voice: S.b2 } : S.style === 'orch' && !isDefInst() ? { inst: Object.assign({}, S.inst) } : {});
+const arrOf = () => S.style === 'orch' && RiverOrch.PRESETS[S.preset] && RiverOrch.PRESETS[S.preset].arr || null;
+const instOK = () => ORC_READY && (arrOf() ? RiverOrch.has(RiverOrch.ARR_SETS) : RiverOrch.has(RiverOrch.setsFor(S.inst)));
+const opts = () => Object.assign({ dur: dur(), musical: S.musical, bpm: 84, lo: 110, hi: 880, style: S.style }, S.style === 'strata' ? { band3Voice: S.b3, band2Voice: S.b2 } : S.style === 'orch' && arrOf() ? { arr: arrOf() } : S.style === 'orch' && !isDefInst() ? { inst: Object.assign({}, S.inst) } : {});
 const tablesFor = (o) => o.style === 'canyon' ? SYN.tables(o) : o.style === 'strata' || o.style === 'orch' ? SYN.tables(Object.assign({}, o, { musical: 0 })) : STY.tables(o);   // strata readout shows the raw wall pitch
 let TB = tablesFor(opts());
 /* ───── audio ─────
@@ -93,7 +96,7 @@ function envRange(e, c1) { const hop = Math.floor(e.sr / ENVR), L = e.job.L, R =
 function pump() {
   clearTimeout(pumpT); const e = E; if (!e || e.buf || S.style !== 'orch') return; if (!ctx || !instOK()) return;   // onSamples() calls back once decoded
   try {
-    if (!e.job) { e.job = ORC.job(e.o, e.sr); e.bandEnv = e.job.bandEnv; BANDENV = { e: e.bandEnv, n: e.bandEnv[0].length }; const hop = Math.floor(e.sr / ENVR), ne = Math.floor(e.n / hop); e.env = { eL: new Float32Array(ne), eR: new Float32Array(ne), n: ne }; ENV = e.env; }
+    if (!e.job) { e.job = e.o.arr ? ARR.job(e.o, e.sr) : ORC.job(e.o, e.sr); e.bandEnv = e.job.bandEnv; BANDENV = { e: e.bandEnv, n: e.bandEnv[0].length }; const hop = Math.floor(e.sr / ENVR), ne = Math.floor(e.n / hop); e.env = { eL: new Float32Array(ne), eR: new Float32Array(ne), n: ne }; ENV = e.env; }
     const c0 = e.job.done, t = performance.now(); e.job.step(Math.round((c0 === 0 ? FIRST : NEXT) * e.sr)); e.done = e.job.done; envRange(e, e.done);
     if (c0 === 0) window.__T.firstBlockMs = performance.now() - t, window.__T.firstBlockAt = performance.now();
     onChunk(e);
@@ -162,6 +165,10 @@ const CT = [
 const refs = [], panel = $('#panel');
 // layout: front = preset + per-band instrument pickers + volume · Explorations (the original synth styles) · Advanced (everything else)
 panel.insertAdjacentHTML('beforeend', '<div class="lead"><b id="leadname">Strata Orchestra</b><span class="note" id="leadsub"></span><button id="backorch" hidden>← Back to the orchestra</button></div><div id="front"><div id="orchui"></div></div><details id="explore"><summary>Explorations</summary><div class="dbody" id="exbody"><p class="note">The original synth versions. The notes and rapid accents stay where the canyon put them; only the sound changes.</p></div></details><details id="adv"><summary>Advanced</summary><div class="dbody" id="advbody"></div></details>');
+{ const r = document.createElement('div'); r.className = 'row'; r.innerHTML = '<label class="pick"><span>River</span><select id="pick-river"></select></label>'; const sel = r.querySelector('select');
+  for (const [id, R] of Object.entries(RIVERS)) if (R.d) { const o = document.createElement('option'); o.value = id; o.textContent = R.label; sel.appendChild(o); }
+  sel.value = RIVER_ID; sel.onchange = () => { try { localStorage.setItem('river-vinyl-river', sel.value); } catch (e) {} const u = new URL(location.href); u.searchParams.set('river', sel.value); location.href = u.toString(); };
+  $('#front').before(r); }
 const front = $('#front'), orchui = $('#orchui'), exbody = $('#exbody'), advbody = $('#advbody'), RO = RiverOrch;
 const setPreset = (id) => { S.style = 'orch'; S.preset = id; S.inst = Object.assign({}, RO.PRESETS[id].inst); refs.forEach(f => f()); invalidate(); save(); };
 $('#backorch').onclick = () => setPreset(S.preset !== 'custom' && RO.PRESETS[S.preset] ? S.preset : 'orchestra');
@@ -171,18 +178,19 @@ refs.push(() => { const nm = { canyon: 'Canyon (original synth)', edm: 'EDM (ori
 { // preset row
   const r = document.createElement('div'); r.className = 'row'; r.innerHTML = '<div class="t"><span>Style</span><em></em></div><div class="seg" id="presets"></div>'; const sg = r.querySelector('.seg'), em = r.querySelector('em');
   const bs = Object.entries(RO.PRESETS).map(([id, P]) => { const b = document.createElement('button'); b.textContent = id === 'orchestra' ? 'Orchestra' : P.label; b.dataset.p = id; b.onclick = () => setPreset(id); sg.appendChild(b); return [id, b]; });
-  refs.push(() => { bs.forEach(([id, b]) => b.setAttribute('aria-checked', S.style === 'orch' && S.preset === id)); em.textContent = S.preset === 'custom' ? 'custom' : S.inst.groove !== 'none' ? '84 BPM · ' + RO.GROOVE[S.inst.groove].toLowerCase() : '84 BPM'; });
+  refs.push(() => { bs.forEach(([id, b]) => b.setAttribute('aria-checked', S.style === 'orch' && S.preset === id)); em.textContent = arrOf() ? ({ canyon: 84, edm: 124, country: 100, pop: 110 })[arrOf()] + ' BPM' : S.preset === 'custom' ? 'custom' : S.inst.groove !== 'none' ? '84 BPM · ' + RO.GROOVE[S.inst.groove].toLowerCase() : '84 BPM'; });
   orchui.appendChild(r);
   // per-band instrument pickers (recorded VSCO 2 CE instruments only)
   const rows = [['b4', 'Band 4 · rim (1000 m+)', RO.BAND_INST[3].map(v => [v, RO.INST[v].label])], ['b3', 'Band 3 · Redwall / Supai (650–1000 m)', RO.BAND_INST[2].map(v => [v, RO.INST[v].label])],
     ['b2', 'Band 2 · Tonto / Muav (300–650 m)', RO.BAND_INST[1].map(v => [v, RO.INST[v].label])], ['b1', 'Band 1 · river / Inner Gorge (0–300 m)', RO.BAND_INST[0].map(v => [v, RO.INST[v].label])],
-    ['acc', 'Rapids (accents)', Object.entries(RO.ACC)], ['groove', 'Beat', Object.entries(RO.GROOVE)]];
+    ['acc', (RD.accName || 'Rapids') + ' (accents)', Object.entries(RO.ACC)], ['groove', 'Beat', Object.entries(RO.GROOVE)]];
   const g = document.createElement('div'); g.className = 'row picks';
   for (const [k, l, list] of rows) { const w = document.createElement('label'); w.className = 'pick'; w.innerHTML = '<span></span><select></select>'; w.firstChild.textContent = l; const sel = w.querySelector('select'); sel.id = 'pick-' + k;
     for (const [v, t] of list) { const o = document.createElement('option'); o.value = v; o.textContent = t + (v === RO.DEF_INST[k] ? ' (default)' : ''); sel.appendChild(o); }
     sel.onchange = () => { S.inst[k] = sel.value; const m = Object.entries(RO.PRESETS).find(([, P]) => INST_KEYS.every(q => P.inst[q] === S.inst[q])); S.preset = m ? m[0] : 'custom'; refs.forEach(f => f()); invalidate(); save(); };
     refs.push(() => { sel.value = S.inst[k]; }); g.appendChild(w); }
-  orchui.appendChild(g);
+  orchui.appendChild(g); const an = document.createElement('div'); an.className = 'row note'; orchui.appendChild(an);
+  refs.push(() => { const a = arrOf(); g.hidden = !!a; an.hidden = !a; if (a) an.textContent = 'Arrangement: the original ' + RiverOrch.PRESETS[S.preset].label + ' synth style (same tempo, grooves, chords and bass lines) re-played with recorded instruments. To choose instruments per band, pick Orchestra.'; });
   const r4 = document.createElement('div'); r4.className = 'row'; r4.innerHTML = '<div class="note" id="orchnote"></div>';
   refs.push(() => { r4.querySelector('#orchnote').textContent = (ORC_ERR ? 'Orchestra samples could not be decoded (' + ORC_ERR + '). ' : !ORC_READY ? 'Decoding orchestra samples… ' : !ORC2_READY ? (ORC2_ERR ? 'Extra instruments could not be decoded (' + ORC2_ERR + '). ' : 'Decoding extra instruments… ') : '') +
     'All instruments are real recordings (VSCO 2 CE, CC0). Room: Jack Lyons Concert Hall IR, OpenAIR, CC BY 4.0. Changing instruments never moves a note or a rapid.'; }); orchui.appendChild(r4);
@@ -204,7 +212,7 @@ for (const c of CT) { const r = document.createElement('div'); r.className = 'ro
 for (const [k, l] of [['orbit', 'Orbit camera (off = follow downstream)'], ['contours', 'Contour lines'], ['labels', 'Landmark labels'], ['loop', 'Loop']]) {
   const b = document.createElement('button'); b.className = 'sw'; b.innerHTML = '<span></span><i></i>'; b.firstChild.textContent = l;
   b.onclick = () => { S[k] = !S[k]; b.setAttribute('aria-checked', S[k]); if (k === 'loop') invalidate(); save(); }; refs.push(() => b.setAttribute('aria-checked', !!S[k])); advbody.appendChild(b); }
-advbody.insertAdjacentHTML('beforeend', '<p class="note"><b>Stereo needle.</b> The dot rides the Colorado River downstream. Your <b>left ear</b> hears the river-left wall, your <b>right ear</b> the river-right wall (facing downstream). Each wall sets its own pitch (height above the river at 500 m and 2 km, 0 → 1,200 m maps to 110 → 880 Hz), brightness (steepness) and grainy texture (roughness). Drops in the river surface (rapids) thump in the middle. <b>Musical</b> snaps both walls to ' + SYN.rootName + ' minor pentatonic (key from the river elevation), adds plucked notes whose density follows each wall, pulls them onto 84 BPM, and adds a soft drone.</p><p class="note">The left wall glows cyan with the left channel, the right wall pink with the right; rapids send a shockwave. Drag to orbit (O toggles follow/orbit), H hides this panel, C hides captions.</p><p class="note">Data: USGS NHD river line, USGS GNIS names, USGS 3DEP terrain via AWS terrain tiles. ' + RD.marks.length + ' landmarks at their GNIS positions (Phantom Ranch sits ~0.75 km up Bright Angel Creek).</p>');
+advbody.insertAdjacentHTML('beforeend', '<p class="note"><b>Stereo needle.</b> The dot rides the ' + (RD.short || 'Colorado River') + ' downstream. Your <b>left ear</b> hears the river-left wall, your <b>right ear</b> the river-right wall (facing downstream). Each wall sets its own pitch (height above the river at 500 m and 2 km, 0 → 1,200 m maps to 110 → 880 Hz), brightness (steepness) and grainy texture (roughness). Drops in the river surface (rapids) thump in the middle. <b>Musical</b> snaps both walls to ' + SYN.rootName + ' minor pentatonic (key from the river elevation), adds plucked notes whose density follows each wall, pulls them onto 84 BPM, and adds a soft drone.</p><p class="note">The left wall glows cyan with the left channel, the right wall pink with the right; rapids send a shockwave. Drag to orbit (O toggles follow/orbit), H hides this panel, C hides captions.</p><p class="note">Data: USGS NHD river line, USGS GNIS names, USGS 3DEP terrain via AWS terrain tiles. ' + RD.marks.length + ' landmarks at their GNIS positions' + (RIVER_ID === 'canyon' ? ' (Phantom Ranch sits ~0.75 km up Bright Angel Creek).' : '. Accents: Locks & Dams 6 and 7 (pool step measured from the terrain model) and tributary mouths; heights keep the same 0–1,200 m → 110–880 Hz mapping as the canyon, so low bluffs sound low.') + '</p>');
 refs.forEach(f => f());
 $('#play').onclick = () => setPlaying(!playing);
 const seek = $('#seek'); let scrub = false;
@@ -465,6 +473,8 @@ canvas.addEventListener('wheel', (e) => { e.preventDefault(); if (!S.orbit) { S.
 addEventListener('resize', resize);
 try { if (!gl) throw new Error('WebGL 2 is not available, so the 3D view is off. Sound still works.'); initGL(); resize(); }
 catch (e) { console.error(e); gl = null; $('#msg').hidden = false; $('#msg').textContent = 'The 3D view could not start (' + e.message + '). Sound still works.'; }
+$('#cap-title i').textContent = (RD.short || 'Colorado River') + ', downstream · left wall → left ear, right wall → right ear'; document.title = 'River Needle · ' + (RD.short || 'Colorado River') + ' sonifier';
+if (RIVER_ID !== 'canyon') document.querySelectorAll('#strata .sr span').forEach((el, j) => { el.textContent = RD.strata.names[3 - j] + ' · '; });
 $('#cap-info').textContent = RD.name + ' · ' + ((N - 1) * RD.ds / 1000).toFixed(0) + ' km · river ' + Math.round(RD.river[0]) + ' → ' + Math.round(RD.river[N - 1]) + ' m · key ' + SYN.rootName + ' minor pentatonic';
 window.__river = { T: () => window.__T, cache: () => [...CACHE.values()].map(e => ({ o: e.o, done: e.done, n: e.n, full: !!e.buf })), cur: () => E && { o: E.o, done: E.done, n: E.n, full: !!E.buf, rms: (() => { const L = E.buf ? E.buf.getChannelData(0) : E.job && E.job.L; if (!L) return null; let a = 0, m = Math.min(E.done, L.length); for (let i = 0; i < m; i += 7) a += L[i] * L[i]; return Math.sqrt(a / (m / 7)); })() }, orch: () => ({ ready: ORC_READY, err: ORC_ERR, render: (o, sr) => ORC.render(o, sr) }), setPlaying: (p) => setPlaying(p), S: () => S, audio: () => ({ state: ctx && ctx.state, playing, pos: curPos(), status: snd.textContent, dur: buf && buf.duration }), nT: () => nT, hdr: () => hdr, lv: () => [lvL, lvR], seekTo: (x) => { pos = x; if (playing) { stop(cur); start(pos); } } };
 requestAnimationFrame(frame);

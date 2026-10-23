@@ -37,3 +37,5 @@ Source: Versilian Studios, VSCO 2 Community Edition (https://github.com/sgossner
 - Keys: Upright Piano (Player_dyn2_rr1_002..040, MIDI keys 25-101 per MappingChart.txt)
 - Percussion: Timpani/Rolls/Timpani1_Roll_v3_rr1_Sum; Snare2-HitSN_v5_rr1/2_Sum; Tamb1-Hit_v1_rr1/2_Sum;
   VSCO 1 Percussion: drums/other/ethnic/giant/mallet/EthnicLargeMallet_hit_ff_1/2, drums/bass/bdrum_muted_ff_1 + bdrum_muted_fff_1, varWood/Camo's Shaker/shake1-4
+
+Added: VSCO 1 Percussion/varMetal/Cymbals/clash/crash_hit_ff_tight, VSCO 1 Percussion/varMetal/various/cabasa_1–4, Percussion/Snare2-taps_v2_rr1/rr2 (same license as above).

@@ -60,10 +60,10 @@ const RiverOrch = (() => {
   const DEF_INST = { b1: 'bassTuba', b2: 'celloArcoPizz', b3: 'violaHorn', b4: 'violinFlute', acc: 'orch', groove: 'none' };
   const PRESETS = {
     orchestra: { label: 'Strata Orchestra', inst: DEF_INST },
-    canyon:  { label: 'Canyon', inst: { b1: 'bass', b2: 'harp', b3: 'clarinet', b4: 'oboe', acc: 'giant', groove: 'none' } },
-    edm:     { label: 'EDM', inst: { b1: 'bassPizz', b2: 'celloPizz', b3: 'violinPizz', b4: 'violin', acc: 'kit', groove: 'edm' } },
-    country: { label: 'Country', inst: { b1: 'bassPizz', b2: 'harp', b3: 'soloViolin', b4: 'oboe', acc: 'kit', groove: 'country' } },
-    pop:     { label: 'Pop', inst: { b1: 'bassPizz', b2: 'piano', b3: 'viola', b4: 'piano', acc: 'kit', groove: 'pop' } },
+    canyon:  { label: 'Canyon', arr: 'canyon', inst: DEF_INST },    // recorded re-creations of the original synth arrangements (riverarr.js)
+    edm:     { label: 'EDM', arr: 'edm', inst: DEF_INST },
+    country: { label: 'Country', arr: 'country', inst: DEF_INST },
+    pop:     { label: 'Pop', arr: 'pop', inst: DEF_INST },
   };
   function fft(re, im, inv) { const n = re.length; for (let i = 1, j = 0; i < n; i++) { let b = n >> 1; for (; j & b; b >>= 1) j ^= b; j ^= b; if (i < j) { let t = re[i]; re[i] = re[j]; re[j] = t; t = im[i]; im[i] = im[j]; im[j] = t; } }
     for (let l = 2; l <= n; l <<= 1) { const a = (inv ? 2 : -2) * Math.PI / l, wr = Math.cos(a), wi = Math.sin(a), h = l >> 1;
@@ -240,12 +240,14 @@ const RiverOrch = (() => {
   function setIR(chans, sr) { let pk = 0; for (const c of chans) for (let i = 0; i < c.length; i++) pk = Math.max(pk, Math.abs(c[i]));   // drop codec delay before the direct sound
     let s = 0; while (s < chans[0].length && Math.abs(chans[0][s]) < 0.05 * pk && Math.abs(chans[1][s]) < 0.05 * pk) s++; s = Math.max(0, s - Math.round(0.002 * sr));
     IR = { sr, data: chans.map(c => c.slice(s)) }; }
+  const ARR_SETS = ['kick', 'snare', 'snareTap', 'cabasa', 'crash', 'bassPizz', 'harp', 'piano', 'violinPizz', 'violaPizz', 'celloPizz', 'bassArcoHi'];
   // which sample sets an instrument config needs (so a page can decode extra instruments on demand)
   function setsFor(inst) { inst = Object.assign({}, DEF_INST, inst || {}); const s = new Set();
     for (let k = 0; k < 4; k++) { const I = INST[inst['b' + (k + 1)]]; if (I && I.set) { I.set.forEach(x => s.add(x)); if (I.trem) s.add(I.trem); } }
     ({ timp: ['timpRoll'], giant: ['giant'], kit: ['kick', 'snare'] }[inst.acc] || []).forEach(x => s.add(x)); if (inst.groove && inst.groove !== 'none') ['kick', 'snare', 'shaker', 'tamb'].forEach(x => s.add(x));
     // bandRef loudness matching always reads the default sections
     return [...s]; }
-  return { create, addSamples, setIR, ready, has, setsFor, SAMPLES, SEAT, GAIN, INST, BAND_INST, ACC, GROOVE, PRESETS, DEF_INST };
+  const getIR = () => IR;
+  return { ARR_SETS, convolve2, getIR, create, addSamples, setIR, ready, has, setsFor, SAMPLES, SEAT, GAIN, INST, BAND_INST, ACC, GROOVE, PRESETS, DEF_INST };
 })();
 if (typeof module !== 'undefined' && module.exports) module.exports = RiverOrch;
