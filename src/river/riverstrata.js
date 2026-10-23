@@ -13,6 +13,7 @@ const RiverStrata = (() => {
   const sstep = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
   function gauss(a, sg) { const n = a.length, r = Math.ceil(sg * 3), k = []; let s = 0; for (let i = -r; i <= r; i++) { k.push(Math.exp(-0.5 * (i / sg) ** 2)); s += k[k.length - 1]; }
     const o = new Float64Array(n); for (let i = 0; i < n; i++) { let v = 0; for (let j = -r; j <= r; j++) { const x = i + j; v += a[x < 0 ? 0 : x >= n ? n - 1 : x] * k[j + r]; } o[i] = v / s; } return o; }
+  const SAMPLES = {};
   function create(RD, SYN) {
     const N = RD.N, tab = SYN.tab, TN = 4096, ST = RD.strata, root = 110 * Math.pow(2, (((Math.round(RD.river.reduce((p, q) => p + q, 0) / N / 30) % 12) + 12) % 12) / 12);
     const rs = (a, sg) => { const g = gauss(a, sg), o = new Float32Array(TN); for (let i = 0; i < TN; i++) o[i] = tab(g, i / (TN - 1)); return o; };
@@ -32,16 +33,42 @@ const RiverStrata = (() => {
       for (let k = 0; k < st; k++) { const t = k / st * dur, d = tab(dens, k / (st - 1)); ph += d * (dur / st) / beat;
         if (ph >= 1) { ph -= Math.floor(ph); if (!out.length || t - out[out.length - 1] > 0.03) out.push(t); } } return out; }
     function render(o, sr, opt) {
-      opt = opt || {}; const T = tables(o), m = clamp(o.musical, 0, 1), dur = o.dur, n = Math.floor(dur * sr), qa = sstep(0.1, 0.8, m), beat = 60 / BPM;
+      opt = opt || {}; let V3 = o.band3Voice || 'brass'; const V2 = o.band2Voice || 'synth', SM3 = SAMPLES[V3], SM2 = V2 === 'pizz' ? SAMPLES.pizz : null; if ((V3 === 'cello' || V3 === 'horn') && !SM3) V3 = 'strings';   // samples not decoded yet -> synthetic fallback
+      const T = tables(o), m = clamp(o.musical, 0, 1), dur = o.dur, n = Math.floor(dur * sr), qa = sstep(0.1, 0.8, m), beat = 60 / BPM;
       const out = [new Float32Array(n), new Float32Array(n)], ER = 120, ne = Math.floor(dur * ER), env = [0, 1, 2, 3].map(() => new Float32Array(ne));
       let seed = 777; const rnd = () => { seed = (Math.imul(seed, 1664525) + 1013904223) | 0; return (seed >>> 0) / 4294967296 * 2 - 1; };
       const plan = { notes: [[], []] };
       [T.L, T.R].forEach((BS, ch) => BS.forEach((B, k) => {
         if (opt.solo !== undefined && opt.solo !== k) return;
         const O = out[ch], vol = [0.5, 0.6, 0.22, 0.28][k];
-        const raw = rawOnsets(B.dens, dur, ch ? 0.5 : 0.999), notes = raw.map(t => { const g = tab(B.dens, t / dur) > 1.6 ? beat / 4 : beat / 2; return { raw: t, t: lerp(t, Math.min(Math.round(t / g) * g, dur - 0.05), qa), hz: tab(B.pitch, t / dur), rawHz: tab(B.raw, t / dur), band: k }; });
+        const dn = k === 2 && V3 === 'mallet' ? B.dens.map((d, i) => d > 0 ? clamp(0.15 + B.steep[i] / 25, 0.15, 2.5) * 0.6 : 0) : B.dens;   // mallet: strike density from steepness
+        const raw = rawOnsets(dn, dur, ch ? 0.5 : 0.999), notes = raw.map(t => { const g = tab(dn, t / dur) > 1.6 ? beat / 4 : beat / 2; return { raw: t, t: lerp(t, Math.min(Math.round(t / g) * g, dur - 0.05), qa), hz: tab(B.pitch, t / dur), rawHz: tab(B.raw, t / dur), band: k }; });
         plan.notes[ch].push(...notes);
-        if (k === 0 || k === 2) {   // continuous voices: drone (schist) / brass-like pad (Redwall-Supai); notes re-articulate them softly
+        if (k === 2 && (V3 === 'cello' || V3 === 'horn')) {   // recorded VSCO 2 CE samples, legato: each terrain note starts a new voice, the old one crossfades out
+          const vs = [], pick = (hz) => SM3.reduce((b, x) => Math.abs(Math.log(hz / x.hz)) < Math.abs(Math.log(hz / b.hz)) ? x : b), gs = V3 === 'cello' ? 4.4 : 2.8, cL = 1 - Math.exp(-TAU * 850 / sr);   // gentle 2-pole low-pass keeps upper harmonics out of band 4
+          let ni = -1, f1 = 0, f2 = 0;
+          for (let i = 0; i < n; i++) { const tt = i / sr;
+            while (ni + 1 < notes.length && notes[ni + 1].t <= tt) { ni++; const nt = notes[ni], x = pick(nt.hz), leg = vs.some(v => v.tgt > 0);
+              vs.forEach(v => { v.tgt = 0; v.step = 1 / (0.16 * sr); });
+              vs.push({ x, pos: x.on + (leg ? 0.15 * x.sr : 0), rate: nt.hz / x.hz * x.sr / sr, g: 0, tgt: 1, step: 1 / ((leg ? 0.12 : 0.03) * sr) }); }
+            let y = 0;
+            for (let j = vs.length - 1; j >= 0; j--) { const v = vs[j], d = v.x.data; v.g += v.g < v.tgt ? Math.min(v.step, v.tgt - v.g) : -Math.min(v.step, v.g - v.tgt);
+              if (v.g <= 0 && v.tgt === 0) { vs.splice(j, 1); continue; }
+              const ip = v.pos | 0, fr = v.pos - ip; y += (d[ip] + (d[ip + 1] - d[ip]) * fr) * v.g; v.pos += v.rate; if (v.pos >= v.x.le) v.pos -= v.x.le - v.x.ls; }
+            f1 += (y - f1) * cL; f2 += (f1 - f2) * cL; O[i] += f2 * tab(B.pres, i / (n - 1)) * vol * gs; } }
+        else if (k === 2 && V3 === 'strings') {   // (A) warm bowed section: detuned saws, 4-pole low-pass under band 4, slow bow swells
+          let p1 = 0, p2 = 0, p3 = 0, vib = 0, f = B.pitch[0], a1 = 0, a2 = 0, a3 = 0, a4 = 0, sw = 0, ni = -1, nt = -9; const ga = 1 - Math.exp(-1 / (sr * 0.08)), c = 1 - Math.exp(-TAU * 560 / sr), gs = 1 - Math.exp(-1 / (sr * 0.12));
+          for (let i = 0; i < n; i++) { const t = i / (n - 1), tt = i / sr; f += (tab(B.pitch, t) - f) * ga; vib += 5.2 / sr; const fv = f * (1 + 0.004 * Math.sin(TAU * vib));
+            p1 = (p1 + fv / sr) % 1; p2 = (p2 + fv * 1.005 / sr) % 1; p3 = (p3 + fv * 0.996 / sr) % 1;
+            while (ni + 1 < notes.length && notes[ni + 1].t <= tt) { ni++; nt = notes[ni].t; }
+            const bow = 0.75 + 0.35 * Math.exp(-(tt - nt) / lerp(0.4, 0.9, m)) * Math.min(1, (tt - nt) / 0.12); sw += (bow * tab(B.pres, t) - sw) * gs;
+            const x = ((2 * p1 - 1) + (2 * p2 - 1) + (2 * p3 - 1)) / 3; a1 += (x - a1) * c; a2 += (a1 - a2) * c; a3 += (a2 - a3) * c; a4 += (a3 - a4) * c;
+            O[i] += a4 * 6.5 * sw * vol; } }
+        else if (k === 2 && V3 === 'mallet') {   // (B) soft marimba: fundamental + a quick, quiet 3.9x overtone
+          notes.forEach(nt => { const p = tab(B.pres, nt.raw / dur); if (p < 0.02) return; const i0 = Math.floor(nt.t * sr), nn = Math.floor(Math.min(1.4, dur - nt.t) * sr); let pa = 0, pb = 0;
+            for (let i = 0; i < nn; i++) { const a = i / sr; pa = (pa + nt.hz / sr) % 1; pb = (pb + nt.hz * 3.93 / sr) % 1;
+              O[i0 + i] += (Math.sin(TAU * pa) * Math.exp(-a / lerp(0.35, 0.6, m)) + 0.08 * Math.sin(TAU * pb) * Math.exp(-a / 0.025)) * Math.min(1, a / 0.002) * p * vol * 2.2 * Math.min(1, (nn - i) / (0.02 * sr)); } }); }
+        else if (k === 0 || k === 2) {   // continuous voices: drone (schist) / brass-like pad (Redwall-Supai); notes re-articulate them softly
           let ph = 0, ph2 = 0, f = B.pitch[0], lp = 0, ni = -1, nt = -9; const ga = 1 - Math.exp(-1 / (sr * lerp(0.01, 0.06, m)));
           for (let i = 0; i < n; i++) { const t = i / (n - 1), tt = i / sr; f += (tab(B.pitch, t) - f) * ga; ph = (ph + f / sr) % 1; ph2 = (ph2 + f * 1.004 / sr) % 1;
             while (ni + 1 < notes.length && notes[ni + 1].t <= tt) { ni++; nt = notes[ni].t; }
@@ -51,12 +78,19 @@ const RiverStrata = (() => {
             O[i] += v * p * vol * art; } }
         else notes.forEach((nt, j) => {   // plucks (Tonto-Muav) and bells (rim)
           const p = tab(B.pres, nt.raw / dur); if (p < 0.02) return; const i0 = Math.floor(nt.t * sr), len = Math.min(k === 1 ? 1.2 : 2.5, dur - nt.t), nn = Math.floor(len * sr);
+          if (k === 1 && SM2) {   // recorded cello-section pizzicato (VSCO 2 CE), one-shot at the terrain pitch
+            const x = SM2.reduce((b, q) => Math.abs(Math.log(nt.hz / q.hz)) < Math.abs(Math.log(nt.hz / b.hz)) ? q : b), rate = nt.hz / x.hz * x.sr / sr, d = x.data; let ps = x.on;
+            for (let i = 0; i < nn && ps < d.length - 1; i++, ps += rate) { const ip = ps | 0; O[i0 + i] += (d[ip] + (d[ip + 1] - d[ip]) * (ps - ip)) * p * vol * 1.3 * Math.min(1, (nn - i) / (0.02 * sr)); } return; }
           if (k === 1) { let pc = 0; for (let i = 0; i < nn; i++) { const a = i / sr; pc = (pc + nt.hz / sr) % 1;   // soft pluck (harmonics die first)
             O[i0 + i] += (Math.sin(TAU * pc) + 0.5 * Math.sin(TAU * 2 * pc) * Math.exp(-a / 0.12) + 0.25 * Math.sin(TAU * 3 * pc) * Math.exp(-a / 0.06)) * Math.exp(-a / lerp(0.3, 0.5, m)) * Math.min(1, a / 0.003) * p * vol * 0.6 * Math.min(1, (nn - i) / (0.02 * sr)); } }
           else { let pc = 0, pm = 0; for (let i = 0; i < nn; i++) { const a = i / sr; pm = (pm + nt.hz * 3.5 / sr) % 1; pc = (pc + nt.hz / sr) % 1;
             O[i0 + i] += Math.sin(TAU * pc + 2.2 * Math.exp(-a / 0.3) * Math.sin(TAU * pm)) * Math.exp(-a / lerp(0.5, 1.2, m)) * Math.min(1, a / 0.002) * p * vol * Math.min(1, (nn - i) / (0.02 * sr)); } } });
         // band texture: roughness inside the band, only where the band is present
-        let lp2 = 0; seed = 99 + 13 * k + 101 * ch; for (let i = 0; i < n; i++) { const t = i / (n - 1); lp2 += (rnd() - lp2) * [0.03, 0.04, 0.12, 0.45][k]; O[i] += lp2 * [0.05, 0.03, 0.04, 0.05][k] * tab(B.pres, t) * clamp(tab(B.rough, t) / 30, 0, 1.5); }
+        if (k === 2 && V3 !== 'brass') {   // grit cut to 35% and band-limited to ~260-520 Hz (2-pole HP + 2-pole LP)
+          let h1 = 0, h2 = 0, l1 = 0, l2 = 0; seed = 99 + 13 * k + 101 * ch; const ch_ = 1 - Math.exp(-TAU * 250 / sr), cl = 1 - Math.exp(-TAU * 520 / sr);
+          for (let i = 0; i < n; i++) { const t = i / (n - 1), w = rnd(); h1 += (w - h1) * ch_; const y1 = w - h1; h2 += (y1 - h2) * ch_; const y2 = y1 - h2; l1 += (y2 - l1) * cl; l2 += (l1 - l2) * cl;
+            O[i] += l2 * 0.04 * 0.35 * 3 * tab(B.pres, t) * clamp(tab(B.rough, t) / 30, 0, 1.5); } }
+        else { let lp2 = 0; seed = 99 + 13 * k + 101 * ch; for (let i = 0; i < n; i++) { const t = i / (n - 1); lp2 += (rnd() - lp2) * [0.03, 0.04, 0.12, 0.45][k]; O[i] += lp2 * [0.05, 0.03, 0.04, 0.05][k] * tab(B.pres, t) * clamp(tab(B.rough, t) / 30, 0, 1.5); } }
         // band level for the meter (presence x instrument gain), both walls summed
         for (let e = 0; e < ne; e++) env[k][e] += 0.5 * tab(B.pres, e / (ne - 1)) * (B.dens.length ? 1 : 0);
       }));
@@ -70,6 +104,10 @@ const RiverStrata = (() => {
     }
     return { tables, render, REG };
   }
-  return { create, REG };
+  // sample registry: name -> [{ hz, sr, data: Float32Array, on, ls, le }] (indices into data, aligned on the detected onset)
+  function addSamples(name, list) { SAMPLES[name] = list.map(q => { const d = q.data; let pk = 0; for (let i = 0; i < d.length; i++) pk = Math.max(pk, Math.abs(d[i]));
+    let c = 0; while (c < d.length && Math.abs(d[c]) <= 0.02 * pk) c++; const on = Math.max(0, c - Math.round(0.005 * q.sr));
+    return { hz: q.hz, sr: q.sr, data: d, on, ls: on + Math.round(q.ls * q.sr), le: Math.min(d.length - 2, on + Math.round(q.le * q.sr)) }; }); }
+  return { create, REG, addSamples, SAMPLES };
 })();
 if (typeof module !== 'undefined' && module.exports) module.exports = RiverStrata;

@@ -1,0 +1,46 @@
+{
+ "brass": {
+  "overlap_b3_b4": 0.124,
+  "inRange_pct": 78.5,
+  "energyInBand4Range_pct": 15.87,
+  "centroid_Hz": 448,
+  "solo30s": {
+   "peak": 0.34,
+   "rms": 0.0703
+  },
+  "band3Notes75s": 176
+ },
+ "strings": {
+  "overlap_b3_b4": 0.012,
+  "inRange_pct": 97.1,
+  "energyInBand4Range_pct": 1.12,
+  "centroid_Hz": 322,
+  "solo30s": {
+   "peak": 0.361,
+   "rms": 0.0647
+  },
+  "band3Notes75s": 176,
+  "full": {
+   "peak": 0.734,
+   "rms": 0.1502
+  },
+  "accents": 24
+ },
+ "mallet": {
+  "overlap_b3_b4": 0,
+  "inRange_pct": 99.6,
+  "energyInBand4Range_pct": 0.04,
+  "centroid_Hz": 320,
+  "solo30s": {
+   "peak": 0.331,
+   "rms": 0.0574
+  },
+  "band3Notes75s": 172,
+  "full": {
+   "peak": 0.721,
+   "rms": 0.1491
+  },
+  "accents": 24
+ },
+ "gritRms_newVsOld_pct": 30
+}

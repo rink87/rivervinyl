@@ -1,0 +1,247 @@
+{
+ "renderSec": 6.787,
+ "full": {
+  "peak": 0.838,
+  "rmsL": 0.1762,
+  "rmsR": 0.2028,
+  "corrLR": 0.475
+ },
+ "accents": [
+  {
+   "t": 0.676,
+   "kind": "timpani",
+   "cymbal": true,
+   "drop": 5.1
+  },
+  {
+   "t": 5.931,
+   "kind": "timpani",
+   "cymbal": false,
+   "drop": 4.6
+  },
+  {
+   "t": 6.982,
+   "kind": "timpani",
+   "cymbal": false,
+   "drop": 2.2
+  },
+  {
+   "t": 13.063,
+   "kind": "timpani",
+   "cymbal": true,
+   "drop": 5.1
+  },
+  {
+   "t": 18.093,
+   "kind": "bassdrum",
+   "cymbal": false,
+   "drop": 1.5
+  },
+  {
+   "t": 20.796,
+   "kind": "bassdrum",
+   "cymbal": false,
+   "drop": 1.6
+  },
+  {
+   "t": 23.423,
+   "kind": "bassdrum",
+   "cymbal": false,
+   "drop": 1.2
+  },
+  {
+   "t": 25.676,
+   "kind": "bassdrum",
+   "cymbal": false,
+   "drop": 1.6
+  },
+  {
+   "t": 26.727,
+   "kind": "bassdrum",
+   "cymbal": false,
+   "drop": 1.4
+  },
+  {
+   "t": 28.078,
+   "kind": "bassdrum",
+   "cymbal": false,
+   "drop": 1.1
+  },
+  {
+   "t": 31.456,
+   "kind": "bassdrum",
+   "cymbal": false,
+   "drop": 1.5
+  },
+  {
+   "t": 34.985,
+   "kind": "timpani",
+   "cymbal": false,
+   "drop": 1.9
+  },
+  {
+   "t": 37.988,
+   "kind": "timpani",
+   "cymbal": false,
+   "drop": 1.9
+  },
+  {
+   "t": 40.616,
+   "kind": "bassdrum",
+   "cymbal": false,
+   "drop": 1.3
+  },
+  {
+   "t": 42.718,
+   "kind": "bassdrum",
+   "cymbal": false,
+   "drop": 1.5
+  },
+  {
+   "t": 46.547,
+   "kind": "bassdrum",
+   "cymbal": false,
+   "drop": 1.5
+  },
+  {
+   "t": 50.751,
+   "kind": "timpani",
+   "cymbal": false,
+   "drop": 1.7
+  },
+  {
+   "t": 55.33,
+   "kind": "timpani",
+   "cymbal": false,
+   "drop": 2
+  },
+  {
+   "t": 56.306,
+   "kind": "timpani",
+   "cymbal": false,
+   "drop": 2
+  },
+  {
+   "t": 57.808,
+   "kind": "timpani",
+   "cymbal": false,
+   "drop": 2
+  },
+  {
+   "t": 58.709,
+   "kind": "bassdrum",
+   "cymbal": false,
+   "drop": 1.4
+  },
+  {
+   "t": 71.321,
+   "kind": "bassdrum",
+   "cymbal": false,
+   "drop": 1.5
+  },
+  {
+   "t": 72.147,
+   "kind": "timpani",
+   "cymbal": false,
+   "drop": 1.7
+  },
+  {
+   "t": 74.324,
+   "kind": "bassdrum",
+   "cymbal": false,
+   "drop": 1.6
+  }
+ ],
+ "maxAccentDiff_s": 0,
+ "notesVsStrata": {
+  "notes": 626,
+  "maxDiff": 0
+ },
+ "tech": {
+  "band2_L": {
+   "pizz": 40,
+   "arco": 71
+  },
+  "band2_R": {
+   "pizz": 0,
+   "arco": 90
+  }
+ },
+ "maxStretch_semitones": [
+  2,
+  2.01,
+  2.01,
+  2.08
+ ],
+ "solos": [
+  {
+   "band": 1,
+   "register_Hz": [
+    41.2,
+    82.4
+   ],
+   "wav30s": {
+    "peak": 0.51,
+    "rmsL": 0.0928,
+    "rmsR": 0.1127,
+    "corrLR": 0.667
+   },
+   "centroid_Hz": 89,
+   "energyInOwnRegister_pct": 61.6
+  },
+  {
+   "band": 2,
+   "register_Hz": [
+    110,
+    220
+   ],
+   "wav30s": {
+    "peak": 0.414,
+    "rmsL": 0.0738,
+    "rmsR": 0.0993,
+    "corrLR": 0.29
+   },
+   "centroid_Hz": 256,
+   "energyInOwnRegister_pct": 68.1
+  },
+  {
+   "band": 3,
+   "register_Hz": [
+    261.6,
+    523.3
+   ],
+   "wav30s": {
+    "peak": 0.434,
+    "rmsL": 0.0624,
+    "rmsR": 0.0666,
+    "corrLR": 0.349
+   },
+   "centroid_Hz": 429,
+   "energyInOwnRegister_pct": 81.8
+  },
+  {
+   "band": 4,
+   "register_Hz": [
+    659.3,
+    1318.5
+   ],
+   "wav30s": {
+    "peak": 0.751,
+    "rmsL": 0.036,
+    "rmsR": 0.1182,
+    "corrLR": 0.202
+   },
+   "centroid_Hz": 747,
+   "energyInOwnRegister_pct": 97.3
+  }
+ ],
+ "overlap": {
+  "b1-b2": 0.005,
+  "b1-b3": 0.001,
+  "b1-b4": 0,
+  "b2-b3": 0.218,
+  "b2-b4": 0.003,
+  "b3-b4": 0.114
+ },
+ "wetToDry_dB": -9.7
+}

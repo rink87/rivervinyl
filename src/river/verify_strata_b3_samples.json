@@ -1,0 +1,82 @@
+{
+ "brass": {
+  "overlap_b3_b4": 0.124,
+  "inRange_pct": 78.5,
+  "energyInBand4Range_pct": 15.87,
+  "centroid_Hz": 448,
+  "solo30s": {
+   "peak": 0.34,
+   "rms": 0.0703
+  },
+  "band3Notes75s": 176
+ },
+ "strings": {
+  "overlap_b3_b4": 0.012,
+  "inRange_pct": 97.1,
+  "energyInBand4Range_pct": 1.12,
+  "centroid_Hz": 322,
+  "solo30s": {
+   "peak": 0.361,
+   "rms": 0.0647
+  },
+  "band3Notes75s": 176
+ },
+ "mallet": {
+  "overlap_b3_b4": 0,
+  "inRange_pct": 99.6,
+  "energyInBand4Range_pct": 0.04,
+  "centroid_Hz": 320,
+  "solo30s": {
+   "peak": 0.331,
+   "rms": 0.0574
+  },
+  "band3Notes75s": 172
+ },
+ "cello": {
+  "overlap_b3_b4": 0.096,
+  "inRange_pct": 84.2,
+  "energyInBand4Range_pct": 11.82,
+  "centroid_Hz": 372,
+  "solo30s": {
+   "peak": 0.341,
+   "rms": 0.057
+  },
+  "band3Notes75s": 176,
+  "full": {
+   "peak": 0.726,
+   "rms": 0.147
+  },
+  "accents": 24
+ },
+ "horn": {
+  "overlap_b3_b4": 0.357,
+  "inRange_pct": 68.8,
+  "energyInBand4Range_pct": 17.33,
+  "centroid_Hz": 430,
+  "solo30s": {
+   "peak": 0.256,
+   "rms": 0.0557
+  },
+  "band3Notes75s": 176,
+  "full": {
+   "peak": 0.723,
+   "rms": 0.1472
+  },
+  "accents": 24
+ },
+ "gritRms_newVsOld_pct": 30,
+ "band2_pizz": {
+  "solo30s": {
+   "peak": 0.518,
+   "rms": 0.0698
+  },
+  "synth_solo30s": {
+   "peak": 0.372,
+   "rms": 0.0746
+  },
+  "full_with_cello": {
+   "peak": 0.738,
+   "rms": 0.1445
+  }
+ }
+}
