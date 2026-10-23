@@ -77,6 +77,23 @@ Same four bands and same note plan as Strata, played by recorded orchestra secti
 - The room is a real concert-hall impulse response, so the algorithmic Reverb slider doesn't apply to this style.
 - Renders: `canyon_river_orchestra.wav` (full mix) and `canyon_orch_band1-4.wav` (band solos).
 
+### Presets recreate the original synth styles (recorded samples)
+Country, Pop, EDM and Canyon now rebuild the original `riverstyles.js` / `riversynth.js` arrangements with VSCO samples (`src/river/riverarr.js`). Melody onsets come from the terrain at the 84 BPM reference and are nudged to the style grid, exactly as before. Drums, bass and chords run at the style tempo (EDM 124, Country 100, Pop 110, Canyon 84). Every terrain note and accent sits at the same time as in the original (0 s difference, 24/24 accents). Layer gains were fitted to the original WAVs.
+
+| Preset | Instruments | Onset match vs original (previous) | Octave-profile diff dB (previous) |
+|---|---|---|---|
+| Canyon | gliding strings, harp notes, cabasa bursts, tremolo texture, bass/strings drone | 0.84 (0.35) | 4.7 (6.5) |
+| EDM | filtered pizz lead, kick, cabasa hat, off-beat bass pizz, sidechained pad, crash risers | 0.96 (0.84) | 3.0 (4.4) |
+| Pop | piano lead and stabs, kick/snare backbeat, cabasa 8ths, bass pizz, strings pad | 0.89 (0.30) | 3.3 (6.5) |
+| Country | harp + pizz lead, snare-tap/cabasa train beat, root-fifth bass, harp strums | 0.62 (0.39) | 7.7 (7.0) |
+
+Known gap: Country is darker than the original synth (centroid 230 vs 550 Hz).
+
+### River selector: Upper Mississippi (Driftless)
+Use the **River** menu, or `?river=mississippi`. It covers 48 km from Trempealeau to La Crosse and the Root River mouth, built with the same pipeline (NHD flowline, 3DEP terrain, ±6 km cross-sections, GNIS bluffs and towns). Accents are Locks & Dams 6 and 7 (USACE positions; 2.03 m pool steps measured from the terrain) and the Trempealeau, Black and Root river mouths. Render: `mississippi_river_orchestra.wav`.
+
+**Audibility:** pitch uses true heights (0–1,200 m maps to 110–880 Hz). The bluffs are only 0–150 m tall, so all 36 notes land in the lowest band and the result is mostly a drone. Suggested fix: an optional river-relative mode (e.g. 0–40, 40–90, 90–140, 140+ m bands) or a log pitch span. True heights stay the default.
+
 ## Credits
 - Instrument samples: Versilian Studios, **VSCO 2 Community Edition** (https://github.com/sgossner/VSCO-2-CE), CC0 1.0.
 - Concert-hall impulse response: Jack Lyons Concert Hall, University of York, from OpenAIR, the Open Acoustic Impulse Response Library (https://www.openair.hosted.york.ac.uk/), licensed CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: decoded to stereo, resampled, trimmed.
