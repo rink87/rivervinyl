@@ -27,3 +27,13 @@ Mono 32 kHz MP3 64 kbps, trimmed from onset, sustains crossfade-looped 1.0–3.0
   Modified: B-format decoded to stereo (L = W + Y, R = W − Y), resampled to 32 kHz, trimmed to 2.4 s with a 0.6 s fade, MP3 96 kbps.
   Credit line: "Concert-hall impulse response: Jack Lyons Concert Hall, University of York, from OpenAIR, the Open Acoustic Impulse
   Response Library (https://www.openair.hosted.york.ac.uk/), licensed CC BY 4.0."
+
+# Picker / preset instruments (samples_orch2.json, built by build_samples_orch2.py)
+Source: Versilian Studios, VSCO 2 Community Edition (https://github.com/sgossner/VSCO-2-CE), CC0 1.0. Mono 32 kHz MP3 64 kbps, same processing.
+- Brass: Tenor Trombone/sus (tenortbn_sus_*_v2_1), Trumpet/sus (Sum_SHTrumpet_sus_*_v1_rr1), F Horn/sus (MOHorn_sus_*_v1_1)
+- Woodwinds: Bassoon/sus (PSBassoon_*_v1_1), Clarinet/susLong (DCClar_susLong_*_v1_rr1_sum), Oboe/Sus (Oboe_Sus_*_v1_Main), Flute/susvib (LDFlute_susvib_*_v1_1)
+- Strings: Solo Violin/Arco Vib (LLVln_ArcoVib_*_p), Solo Contrabass/SusVib (A1, C#2, E2, G#2) and /Pizz (BKCtbss_Pizz_*_v1_rr1/2), Harp (KSHarp_*),
+  Violin Section/Pizz (VlnEns_Pizz_*_v2_rr1/2), Viola Section/pizz (ViolaEns_pizz_*_v2_rr1/2)
+- Keys: Upright Piano (Player_dyn2_rr1_002..040, MIDI keys 25-101 per MappingChart.txt)
+- Percussion: Timpani/Rolls/Timpani1_Roll_v3_rr1_Sum; Snare2-HitSN_v5_rr1/2_Sum; Tamb1-Hit_v1_rr1/2_Sum;
+  VSCO 1 Percussion: drums/other/ethnic/giant/mallet/EthnicLargeMallet_hit_ff_1/2, drums/bass/bdrum_muted_ff_1 + bdrum_muted_fff_1, varWood/Camo's Shaker/shake1-4

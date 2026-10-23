@@ -15,7 +15,7 @@ canvas{position:fixed;inset:0;width:100%;height:100%;cursor:grab;touch-action:no
 #seek{width:min(36vw,380px)}#time{font-variant-numeric:tabular-nums;opacity:.75;min-width:78px}
 #snd{position:fixed;right:16px;bottom:14px;opacity:.75}#snd[data-k=error],#snd[data-k=blocked]{color:#ff8a7a;opacity:1}#snd[data-k=playing]{color:#8cf0b0}
 #ptoggle{position:fixed;right:16px;top:12px;z-index:3;background:rgba(30,30,34,.8);color:#ddd;border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:5px 10px;cursor:pointer}
-#panel{position:fixed;right:12px;top:46px;width:290px;max-height:calc(100% - 120px);overflow:auto;background:rgba(18,18,22,.82);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:12px 14px;backdrop-filter:blur(10px)}
+#panel{position:fixed;right:12px;top:46px;width:300px;max-height:calc(100% - 120px);overflow:auto;background:rgba(18,18,22,.82);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:12px 14px;backdrop-filter:blur(10px)}
 .nopanel #panel{display:none}
 .row{margin:8px 0}.row .t{display:flex;justify-content:space-between}.row em{font-style:normal;opacity:.7}.row input{width:100%}
 .sw{display:flex;justify-content:space-between;width:100%;background:none;border:0;color:inherit;padding:6px 0;cursor:pointer;font:inherit}
@@ -30,6 +30,8 @@ canvas{position:fixed;inset:0;width:100%;height:100%;cursor:grab;touch-action:no
 #lead{}.lead{margin-bottom:6px}.lead b{display:block;font-size:14px;font-weight:600;color:#fff}.lead .note{display:block;margin-top:2px}
 #backorch{margin-top:6px;background:rgba(58,143,208,.25);color:#cfe6ff;border:1px solid rgba(58,143,208,.5);border-radius:6px;padding:4px 8px;cursor:pointer;font:inherit;font-size:11px}
 #panel details{border-top:1px solid rgba(255,255,255,.1);margin-top:8px;padding-top:6px}#panel summary{cursor:pointer;list-style:none;padding:4px 0;font-weight:500;opacity:.85;display:flex;justify-content:space-between}#panel summary::-webkit-details-marker{display:none}#panel summary:after{content:"+";opacity:.6}#panel details[open] summary:after{content:"−"}#panel summary:hover{opacity:1}
+.picks{display:grid;gap:6px}.pick{display:block}.pick span{display:block;opacity:.75;font-size:11px;margin-bottom:2px}.pick select{width:100%;background:#222;color:#ddd;border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:4px}
+#orchui .seg button{flex:1 1 30%}
 @media (max-width:760px){#panel{width:auto;left:12px}}
 </style></head><body>
 <canvas id="stage"></canvas><div id="labels"></div>

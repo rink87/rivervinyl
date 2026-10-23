@@ -1,0 +1,262 @@
+{
+ "canyon": {
+  "inst": {
+   "b1": "bass",
+   "b2": "harp",
+   "b3": "clarinet",
+   "b4": "oboe",
+   "acc": "giant",
+   "groove": "none"
+  },
+  "ms": 3865,
+  "wav": {
+   "peak": 0.896,
+   "rmsL": 0.2978,
+   "rmsR": 0.332
+  },
+  "notes": 626,
+  "maxNoteDiff": 0,
+  "accents": 24,
+  "maxAccentDiff_s": 0,
+  "tech": {
+   "band1_L": {
+    "inst": "bass",
+    "gain": 1.032,
+    "maxStretchSemis": 2
+   },
+   "band2_L": {
+    "inst": "harp",
+    "gain": 1.182,
+    "maxStretchSemis": 2
+   },
+   "band3_L": {
+    "inst": "clarinet",
+    "gain": 0.834,
+    "maxStretchSemis": 2.03
+   },
+   "band4_L": {
+    "inst": "oboe",
+    "gain": 1.139,
+    "maxStretchSemis": 1.98
+   },
+   "band1_R": {
+    "inst": "bass",
+    "gain": 1.032,
+    "maxStretchSemis": 2
+   },
+   "band2_R": {
+    "inst": "harp",
+    "gain": 1.182,
+    "maxStretchSemis": 1.99
+   },
+   "band3_R": {
+    "inst": "clarinet",
+    "gain": 0.834,
+    "maxStretchSemis": 2
+   },
+   "band4_R": {
+    "inst": "oboe",
+    "gain": 1.139,
+    "maxStretchSemis": 1.93
+   }
+  }
+ },
+ "edm": {
+  "inst": {
+   "b1": "bassPizz",
+   "b2": "celloPizz",
+   "b3": "violinPizz",
+   "b4": "violin",
+   "acc": "kit",
+   "groove": "edm"
+  },
+  "ms": 4044,
+  "wav": {
+   "peak": 0.926,
+   "rmsL": 0.1998,
+   "rmsR": 0.2191
+  },
+  "notes": 626,
+  "maxNoteDiff": 0,
+  "accents": 24,
+  "maxAccentDiff_s": 0,
+  "tech": {
+   "band1_L": {
+    "inst": "bassPizz",
+    "gain": 1.534,
+    "maxStretchSemis": 0
+   },
+   "band2_L": {
+    "inst": "celloPizz",
+    "gain": 1.416,
+    "maxStretchSemis": 1.9
+   },
+   "band3_L": {
+    "inst": "violinPizz",
+    "gain": 2.309,
+    "maxStretchSemis": 2
+   },
+   "band4_L": {
+    "inst": "violin",
+    "gain": 1.45,
+    "maxStretchSemis": 0.09
+   },
+   "band1_R": {
+    "inst": "bassPizz",
+    "gain": 1.534,
+    "maxStretchSemis": 0.01
+   },
+   "band2_R": {
+    "inst": "celloPizz",
+    "gain": 1.416,
+    "maxStretchSemis": 1.9
+   },
+   "band3_R": {
+    "inst": "violinPizz",
+    "gain": 2.309,
+    "maxStretchSemis": 2
+   },
+   "band4_R": {
+    "inst": "violin",
+    "gain": 1.45,
+    "maxStretchSemis": 0.12
+   }
+  },
+  "groove": {
+   "style": "edm",
+   "hits": 575
+  }
+ },
+ "country": {
+  "inst": {
+   "b1": "bassPizz",
+   "b2": "harp",
+   "b3": "soloViolin",
+   "b4": "oboe",
+   "acc": "kit",
+   "groove": "country"
+  },
+  "ms": 3489,
+  "wav": {
+   "peak": 0.904,
+   "rmsL": 0.2486,
+   "rmsR": 0.2781
+  },
+  "notes": 626,
+  "maxNoteDiff": 0,
+  "accents": 24,
+  "maxAccentDiff_s": 0,
+  "tech": {
+   "band1_L": {
+    "inst": "bassPizz",
+    "gain": 1.534,
+    "maxStretchSemis": 0
+   },
+   "band2_L": {
+    "inst": "harp",
+    "gain": 1.182,
+    "maxStretchSemis": 2
+   },
+   "band3_L": {
+    "inst": "soloViolin",
+    "gain": 1.147,
+    "maxStretchSemis": 2.08
+   },
+   "band4_L": {
+    "inst": "oboe",
+    "gain": 1.139,
+    "maxStretchSemis": 1.98
+   },
+   "band1_R": {
+    "inst": "bassPizz",
+    "gain": 1.534,
+    "maxStretchSemis": 0.01
+   },
+   "band2_R": {
+    "inst": "harp",
+    "gain": 1.182,
+    "maxStretchSemis": 1.99
+   },
+   "band3_R": {
+    "inst": "soloViolin",
+    "gain": 1.147,
+    "maxStretchSemis": 2.47
+   },
+   "band4_R": {
+    "inst": "oboe",
+    "gain": 1.139,
+    "maxStretchSemis": 1.93
+   }
+  },
+  "groove": {
+   "style": "country",
+   "hits": 314
+  }
+ },
+ "pop": {
+  "inst": {
+   "b1": "bassPizz",
+   "b2": "piano",
+   "b3": "viola",
+   "b4": "piano",
+   "acc": "kit",
+   "groove": "pop"
+  },
+  "ms": 3897,
+  "wav": {
+   "peak": 0.91,
+   "rmsL": 0.223,
+   "rmsR": 0.2416
+  },
+  "notes": 626,
+  "maxNoteDiff": 0,
+  "accents": 24,
+  "maxAccentDiff_s": 0,
+  "tech": {
+   "band1_L": {
+    "inst": "bassPizz",
+    "gain": 1.534,
+    "maxStretchSemis": 0
+   },
+   "band2_L": {
+    "inst": "piano",
+    "gain": 1.3,
+    "maxStretchSemis": 2
+   },
+   "band3_L": {
+    "inst": "viola",
+    "gain": 1.25,
+    "maxStretchSemis": 2
+   },
+   "band4_L": {
+    "inst": "piano",
+    "gain": 1.724,
+    "maxStretchSemis": 1.98
+   },
+   "band1_R": {
+    "inst": "bassPizz",
+    "gain": 1.534,
+    "maxStretchSemis": 0.01
+   },
+   "band2_R": {
+    "inst": "piano",
+    "gain": 1.3,
+    "maxStretchSemis": 2
+   },
+   "band3_R": {
+    "inst": "viola",
+    "gain": 1.25,
+    "maxStretchSemis": 1.99
+   },
+   "band4_R": {
+    "inst": "piano",
+    "gain": 1.724,
+    "maxStretchSemis": 1.93
+   }
+  },
+  "groove": {
+   "style": "pop",
+   "hits": 235
+  }
+ }
+}

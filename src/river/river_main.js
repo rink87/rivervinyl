@@ -1,7 +1,8 @@
 (() => {
 'use strict';
 const $ = (s) => document.querySelector(s), RD = RIVER, N = RD.N, SYN = RiverSynth.create(RD);
-const KEY = 'canyon-river-v2', DEF = { style: 'orch', musical: 0.6, speed: 1, base: 75, vol: 0.9, verb: 0.25, exag: 2.2, orbit: false, contours: true, loop: true, labels: true, glow: 1, grain: .5, psize: 1 };
+window.__T = window.__T || {};
+const KEY = 'canyon-river-v2', DEF = { style: 'orch', preset: 'orchestra', musical: 0.6, speed: 1, base: 75, vol: 0.9, verb: 0.25, exag: 2.2, orbit: false, contours: true, loop: true, labels: true, glow: 1, grain: .5, psize: 1 };
 let S = Object.assign({}, DEF); try { Object.assign(S, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) {}
 for (const k of ['musical', 'speed', 'vol', 'verb', 'exag', 'glow', 'grain', 'psize']) if (!Number.isFinite(S[k])) S[k] = DEF[k];
 S.musical = Math.min(Math.max(S.musical, 0), 1); S.speed = Math.min(Math.max(S.speed, 0.5), 2); S.base = 75;
@@ -11,6 +12,11 @@ const STY = RiverStyles.create(RD, SYN), STR = RiverStrata.create(RD, SYN), ORC 
 const isBand = () => S.style === 'strata' || S.style === 'orch';   // both use the 4 height bands
 let BANDENV = null; const BLAB = { s: null, o: [] };   // band-meter labels (Strata synth names vs orchestra sections)
 if (!STYLE_IDS.includes(S.style)) S.style = 'orch';
+S.inst = Object.assign({}, RiverOrch.DEF_INST, S.inst && typeof S.inst === 'object' ? S.inst : {});
+for (let k = 0; k < 4; k++) if (!RiverOrch.BAND_INST[k].includes(S.inst['b' + (k + 1)])) S.inst['b' + (k + 1)] = RiverOrch.DEF_INST['b' + (k + 1)];
+if (!RiverOrch.ACC[S.inst.acc]) S.inst.acc = 'orch'; if (!RiverOrch.GROOVE[S.inst.groove]) S.inst.groove = 'none';
+if (!RiverOrch.PRESETS[S.preset] && S.preset !== 'custom') S.preset = 'orchestra';
+const INST_KEYS = ['b1', 'b2', 'b3', 'b4', 'acc', 'groove'], isDefInst = () => INST_KEYS.every(k => S.inst[k] === RiverOrch.DEF_INST[k]);
 if (!['brass', 'strings', 'mallet', 'cello', 'horn'].includes(S.b3)) S.b3 = 'brass'; if (!['synth', 'pizz'].includes(S.b2)) S.b2 = 'synth';
 /* recorded samples (VSCO 2 CE, CC0): MP3 embedded as base64, decoded once with an OfflineAudioContext (no user gesture needed; Safari OK) */
 let SMP_READY = false, SMP_ERR = null;
@@ -25,25 +31,40 @@ let SMP_READY = false, SMP_ERR = null;
       .catch(e => { SMP_ERR = (e && e.message) || String(e); console.error('sample decode failed', e); refs.forEach(f => f()); });
   } catch (e) { SMP_ERR = e.message; }
 })();
-/* Strata Orchestra: VSCO 2 CE sections (CC0) + OpenAIR Jack Lyons Concert Hall IR (CC BY 4.0), decoded the same way (32 kHz OfflineAudioContext) */
-let ORC_READY = false, ORC_ERR = null, ORC_PENDING = false;
+/* Strata Orchestra: VSCO 2 CE sections (CC0) + OpenAIR Jack Lyons Concert Hall IR (CC BY 4.0), decoded the same way (32 kHz OfflineAudioContext).
+   The default sections decode first; the extra picker / preset instruments (SAMPLES_ORCH2) decode right after. */
+let ORC_READY = false, ORC_ERR = null, ORC2_READY = false, ORC2_ERR = null;
+const OACx = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+const decB64 = (oc, b64) => new Promise((res, rej) => { const s = atob(b64), u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i);
+  const p = oc.decodeAudioData(u.buffer, res, rej); if (p && p.catch) p.catch(rej); });
 (function decodeOrch() {
   try {
-    const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext; if (!OAC) throw new Error('no OfflineAudioContext');
-    const oc = new OAC(2, SAMPLES_ORCH.sr, SAMPLES_ORCH.sr), jobs = [];
-    const dec = (b64) => new Promise((res, rej) => { const s = atob(b64), u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i);
-      const p = oc.decodeAudioData(u.buffer, res, rej); if (p && p.catch) p.catch(rej); });
-    for (const [name, list] of Object.entries(SAMPLES_ORCH.sets)) jobs.push(Promise.all(list.map(q => dec(q.mp3).then(b => ({ hz: q.hz, ls: q.ls, le: q.le, peakAt: q.peakAt, sr: b.sampleRate, data: b.getChannelData(0) })))).then(l => RiverOrch.addSamples(name, l)));
-    jobs.push(dec(SAMPLES_ORCH.ir.mp3).then(b => RiverOrch.setIR([b.getChannelData(0), b.getChannelData(b.numberOfChannels > 1 ? 1 : 0)], b.sampleRate)));
-    Promise.all(jobs).then(() => { ORC_READY = true; refs.forEach(f => f()); if (S.style === 'orch') { invalidate(); if (ORC_PENDING) { ORC_PENDING = false; setPlaying(true); } } })
+    if (!OACx) throw new Error('no OfflineAudioContext');
+    const oc = new OACx(2, SAMPLES_ORCH.sr, SAMPLES_ORCH.sr), jobs = [];
+    for (const [name, list] of Object.entries(SAMPLES_ORCH.sets)) jobs.push(Promise.all(list.map(q => decB64(oc, q.mp3).then(b => ({ hz: q.hz, ls: q.ls, le: q.le, peakAt: q.peakAt, sr: b.sampleRate, data: b.getChannelData(0) })))).then(l => RiverOrch.addSamples(name, l)));
+    jobs.push(decB64(oc, SAMPLES_ORCH.ir.mp3).then(b => RiverOrch.setIR([b.getChannelData(0), b.getChannelData(b.numberOfChannels > 1 ? 1 : 0)], b.sampleRate)));
+    Promise.all(jobs).then(() => { ORC_READY = true; window.__T.orcReady = performance.now(); refs.forEach(f => f()); onSamples(); decodeOrch2(); })
       .catch(e => { ORC_ERR = (e && e.message) || String(e); console.error('orchestra decode failed', e); refs.forEach(f => f()); if (S.style === 'orch') setSnd('blocked', 'orchestra samples could not be decoded'); });
   } catch (e) { ORC_ERR = e.message; }
 })();
-const opts = () => Object.assign({ dur: dur(), musical: S.musical, bpm: 84, lo: 110, hi: 880, style: S.style }, S.style === 'strata' ? { band3Voice: S.b3, band2Voice: S.b2 } : {});
+function decodeOrch2() {
+  try {
+    const oc = new OACx(1, SAMPLES_ORCH2.sr, SAMPLES_ORCH2.sr), jobs = [];
+    for (const [name, list] of Object.entries(SAMPLES_ORCH2.sets)) jobs.push(Promise.all(list.map(q => decB64(oc, q.mp3).then(b => ({ hz: q.hz, ls: q.ls, le: q.le, sr: b.sampleRate, data: b.getChannelData(0) })))).then(l => { RiverOrch.addSamples(name, l); onSamples(); }));
+    Promise.all(jobs).then(() => { ORC2_READY = true; refs.forEach(f => f()); onSamples(); })
+      .catch(e => { ORC2_ERR = (e && e.message) || String(e); console.error('instrument decode failed', e); refs.forEach(f => f()); });
+  } catch (e) { ORC2_ERR = e.message; }
+}
+const instOK = () => ORC_READY && RiverOrch.has(RiverOrch.setsFor(S.inst));
+const opts = () => Object.assign({ dur: dur(), musical: S.musical, bpm: 84, lo: 110, hi: 880, style: S.style }, S.style === 'strata' ? { band3Voice: S.b3, band2Voice: S.b2 } : S.style === 'orch' && !isDefInst() ? { inst: Object.assign({}, S.inst) } : {});
 const tablesFor = (o) => o.style === 'canyon' ? SYN.tables(o) : o.style === 'strata' || o.style === 'orch' ? SYN.tables(Object.assign({}, o, { musical: 0 })) : STY.tables(o);   // strata readout shows the raw wall pitch
 let TB = tablesFor(opts());
-/* ───── audio (pre-rendered AudioBuffer; Safari: context created/resumed inside the click) ───── */
-let ctx = null, master, wet, buf = null, dirty = true, cur = null, playing = false, pos = 0, analyser, ana, level = 0;
+/* ───── audio ─────
+   Synth styles: pre-rendered AudioBuffer (as before). Orchestra: an incremental render job per instrument config, rendered in blocks
+   (first 3 s, then 4 s) between UI frames; playback starts as soon as the first block exists and later blocks are scheduled back to back
+   on the audio clock (sample-exact boundaries). When the job finishes it becomes one AudioBuffer, cached per config (LRU 5), so
+   re-picking a config is instant. The context is created at load (suspended) so the first block can be ready before the click. */
+let ctx = null, master, wet, buf = null, dirty = true, cur = null, playing = false, pos = 0, analyser, ana, level = 0, unlocked = false, waitOff = null;
 const snd = $('#snd'), setSnd = (k, m) => { snd.dataset.k = k; snd.textContent = 'sound: ' + m; };
 function initAudio() {
   if (ctx) return true; const AC = window.AudioContext || window.webkitAudioContext; if (!AC) { setSnd('error', 'no Web Audio in this browser'); return false; }
@@ -52,32 +73,80 @@ function initAudio() {
   for (let c = 0; c < 2; c++) { const d = ir.getChannelData(c); let y = 0; for (let i = 0; i < len; i++) { y += ((Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.6) - y) * 0.3; d[i] = y; } }
   conv.buffer = ir; wet = ctx.createGain(); wet.gain.value = S.verb; conv.connect(wet); wet.connect(master); master._conv = conv;
   analyser = ctx.createAnalyser(); analyser.fftSize = 1024; ana = new Float32Array(1024); master.connect(analyser); master.connect(ctx.destination);
-  const ub = ctx.createBuffer(1, 1, 22050), us = ctx.createBufferSource(); us.buffer = ub; us.connect(ctx.destination); us.start(0);
-  ctx.onstatechange = () => { if (playing && ctx.state !== 'running') setSnd('blocked', 'browser paused audio (' + ctx.state + '), press play again'); };
+  ctx.onstatechange = () => { if (playing && ctx.state !== 'running' && ctx.state !== 'suspended') setSnd('blocked', 'browser paused audio (' + ctx.state + '), press play again'); };
   return true;
 }
+function unlock() { if (unlocked) return; unlocked = true; try { const ub = ctx.createBuffer(1, 1, 22050), us = ctx.createBufferSource(); us.buffer = ub; us.connect(ctx.destination); us.start(0); } catch (e) {} }   // iOS/Safari: inside the click
 function ensureBuf() {
   if (buf && !dirty && buf.sampleRate === ctx.sampleRate) return buf;
-  setSnd('busy', 'rendering…'); const o = opts(), r = o.style === 'canyon' ? SYN.render(o, ctx.sampleRate) : o.style === 'strata' ? STR.render(o, ctx.sampleRate) : o.style === 'orch' ? ORC.render(o, ctx.sampleRate) : STY.render(o, ctx.sampleRate), b = ctx.createBuffer(2, r.L.length, ctx.sampleRate);
+  setSnd('busy', 'rendering…'); const o = opts(), r = o.style === 'canyon' ? SYN.render(o, ctx.sampleRate) : o.style === 'strata' ? STR.render(o, ctx.sampleRate) : STY.render(o, ctx.sampleRate), b = ctx.createBuffer(2, r.L.length, ctx.sampleRate);
   b.getChannelData(0).set(r.L); b.getChannelData(1).set(r.R); BANDENV = r.bandEnv ? { e: r.bandEnv, n: r.bandEnv[0].length } : null; buf = b; dirty = false; computeEnv(b); return b;
 }
+/* orchestra render cache */
+const CACHE = new Map(); let E = null, pumpT = 0; const FIRST = 3, NEXT = 4;
+function entry() { const o = opts(), sr = ctx.sampleRate, key = JSON.stringify([o, sr]); let e = CACHE.get(key);
+  if (e) { CACHE.delete(key); CACHE.set(key, e); return e; }
+  e = { key, o, sr, n: Math.floor(o.dur * sr), job: null, done: 0, buf: null, env: null, bandEnv: null, envDone: 0 }; CACHE.set(key, e);
+  for (const [k, x] of CACHE) { if (CACHE.size <= 5) break; if (x !== e && !(cur && cur.e === x)) CACHE.delete(k); } return e; }
+function useEntry() { E = entry(); if (E.env) ENV = E.env; BANDENV = E.bandEnv ? { e: E.bandEnv, n: E.bandEnv[0].length } : null; ACC = accentTimes(); pump(); return E; }
+function envRange(e, c1) { const hop = Math.floor(e.sr / ENVR), L = e.job.L, R = e.job.R, ev = e.env; for (let k = e.envDone; k < ev.n && (k + 1) * hop <= c1; k++, e.envDone = k + 1) { let a = 0, c = 0; for (let i = k * hop; i < (k + 1) * hop; i += 4) { a += L[i] * L[i]; c += R[i] * R[i]; } ev.eL[k] = Math.sqrt(a / (hop / 4)); ev.eR[k] = Math.sqrt(c / (hop / 4)); } }
+function pump() {
+  clearTimeout(pumpT); const e = E; if (!e || e.buf || S.style !== 'orch') return; if (!ctx || !instOK()) return;   // onSamples() calls back once decoded
+  try {
+    if (!e.job) { e.job = ORC.job(e.o, e.sr); e.bandEnv = e.job.bandEnv; BANDENV = { e: e.bandEnv, n: e.bandEnv[0].length }; const hop = Math.floor(e.sr / ENVR), ne = Math.floor(e.n / hop); e.env = { eL: new Float32Array(ne), eR: new Float32Array(ne), n: ne }; ENV = e.env; }
+    const c0 = e.job.done, t = performance.now(); e.job.step(Math.round((c0 === 0 ? FIRST : NEXT) * e.sr)); e.done = e.job.done; envRange(e, e.done);
+    if (c0 === 0) window.__T.firstBlockMs = performance.now() - t, window.__T.firstBlockAt = performance.now();
+    onChunk(e);
+    if (e.done >= e.n) { const b = ctx.createBuffer(2, e.n, e.sr); b.getChannelData(0).set(e.job.L); b.getChannelData(1).set(e.job.R); e.buf = b; e.job = null; window.__T.fullAt = performance.now(); onChunk(e); if (!playing) setSnd('ready', 'ready'); }
+  } catch (err) { console.error(err); setSnd('error', err.message || String(err)); return; }
+  if (!e.buf) { if (!playing) setSnd('busy', 'preparing… ' + Math.round(e.done / e.n * 100) + '%'); pumpT = setTimeout(pump, playing ? 0 : 50); }
+}
+function onSamples() { if (S.style !== 'orch') return; if (!ctx) initAudio(); if (!ctx) return; if (!E || E.key !== JSON.stringify([opts(), ctx.sampleRate])) useEntry(); else pump(); }
+function onChunk(e) {
+  if (e !== E) return;
+  if (cur && cur.e === e) sched(cur);
+  else if (playing && !cur && waitOff !== null && (e.buf || e.done >= Math.min(e.n, Math.floor(waitOff * e.n) + Math.round(0.5 * e.sr)))) { const w = waitOff; waitOff = null; start(w); }
+}
+function sched(c) { const e = c.e;
+  if (e.job && e.done > c.next) { const len = e.done - c.next, b = ctx.createBuffer(2, len, e.sr); b.getChannelData(0).set(e.job.L.subarray(c.next, e.done)); b.getChannelData(1).set(e.job.R.subarray(c.next, e.done));
+    const s = ctx.createBufferSource(); s.buffer = b; s.connect(c.g); const when = c.t0 + (c.next - c.s0) / e.sr; s.start(Math.max(when, ctx.currentTime)); if (when < ctx.currentTime - 0.01) window.__T.late = (window.__T.late || 0) + 1;
+    c.srcs.push(s); c.next = e.done; c.last = s; if (window.__T.firstSoundAt === undefined) window.__T.firstSoundAt = performance.now() + Math.max(0, when - ctx.currentTime) * 1000;
+    s.onended = () => { if (cur === c && !c.handoff && s === c.last && c.next >= e.n) { cur = null; playing = false; pos = 0; syncPlay(); setSnd('ready', 'ready'); } }; }
+  if (e.buf && S.loop && !c.handoff && c.next >= e.n) {   // gapless hand-off into the finished, looping buffer
+    const s = ctx.createBufferSource(), tEnd = c.t0 + (e.n - c.s0) / e.sr; s.buffer = e.buf; s.loop = true; s.connect(c.g); s.start(Math.max(tEnd, ctx.currentTime)); c.handoff = s; c.srcs.push(s); c.t0 = tEnd; c.o = 0; c.loop = true; }
+}
 function start(off) {
-  const b = ensureBuf(), s = ctx.createBufferSource(), g = ctx.createGain(); s.buffer = b; s.loop = !!S.loop; s.connect(g); g.connect(master); if (S.style !== 'orch') g.connect(master._conv);   // orchestra: its own concert-hall convolution is baked in, no algorithmic send
-  const now = ctx.currentTime, o = Math.min(Math.max(off, 0), 0.9999) * b.duration; g.gain.setValueAtTime(0, now); g.gain.linearRampToValueAtTime(1, now + 0.03);
-  const c = { s, g, t0: now, o, d: b.duration, loop: s.loop }; s.onended = () => { if (cur === c) { cur = null; playing = false; pos = 0; syncPlay(); setSnd('ready', 'ready'); } };
+  off = Math.min(Math.max(off, 0), 0.9999); const now = ctx.currentTime;
+  if (S.style === 'orch') {
+    if (!E || E.key !== JSON.stringify([opts(), ctx.sampleRate])) useEntry();
+    const e = E, s0 = Math.floor(off * e.n);
+    if (!e.buf && e.done < Math.min(e.n, s0 + Math.round(0.5 * e.sr))) { waitOff = off; cur = null; pos = off; setSnd('busy', !instOK() ? 'decoding instruments…' : 'rendering…'); pump(); return; }
+    const g = ctx.createGain(); g.connect(master); g.gain.setValueAtTime(0, now);
+    if (e.buf) { const s = ctx.createBufferSource(); s.buffer = e.buf; s.loop = !!S.loop; s.connect(g); g.gain.linearRampToValueAtTime(1, now + 0.03); const o = off * e.buf.duration;
+      const c = { e, g, srcs: [s], t0: now, o, d: e.buf.duration, loop: s.loop, handoff: s }; s.onended = () => { if (cur === c) { cur = null; playing = false; pos = 0; syncPlay(); setSnd('ready', 'ready'); } };
+      s.start(now, o); cur = c; if (window.__T.firstSoundAt === undefined) window.__T.firstSoundAt = performance.now(); }
+    else { const t0 = Math.ceil((now + 0.04) * e.sr) / e.sr; g.gain.linearRampToValueAtTime(1, t0 + 0.03);
+      cur = { e, g, srcs: [], s0, next: s0, t0, o: s0 / e.sr, d: e.n / e.sr, loop: false }; sched(cur); pump(); }
+    setSnd('playing', 'playing · ' + ctx.sampleRate / 1000 + ' kHz'); return;
+  }
+  const b = ensureBuf(), s = ctx.createBufferSource(), g = ctx.createGain(); s.buffer = b; s.loop = !!S.loop; s.connect(g); g.connect(master); g.connect(master._conv);
+  const o = off * b.duration; g.gain.setValueAtTime(0, now); g.gain.linearRampToValueAtTime(1, now + 0.03);
+  const c = { g, srcs: [s], t0: now, o, d: b.duration, loop: s.loop }; s.onended = () => { if (cur === c) { cur = null; playing = false; pos = 0; syncPlay(); setSnd('ready', 'ready'); } };
   s.start(now, o); cur = c; setSnd('playing', 'playing · ' + ctx.sampleRate / 1000 + ' kHz');
 }
-function stop(c) { if (!c) return; try { c.s.onended = null; const n = ctx.currentTime; c.g.gain.setValueAtTime(c.g.gain.value, n); c.g.gain.linearRampToValueAtTime(0, n + 0.04); c.s.stop(n + 0.06); } catch (e) {} }
-function curPos() { if (!cur) return pos; const x = (cur.o + ctx.currentTime - cur.t0) / cur.d; return cur.loop ? x - Math.floor(x) : Math.min(x, 0.9999); }
+function stop(c) { if (!c) return; try { const n = ctx.currentTime; c.g.gain.cancelScheduledValues(n); c.g.gain.setValueAtTime(c.g.gain.value, n); c.g.gain.linearRampToValueAtTime(0, n + 0.04); for (const s of c.srcs) { s.onended = null; try { s.stop(n + 0.06); } catch (e) {} } } catch (e) {} }
+function curPos() { if (!cur) return pos; const x = (cur.o + ctx.currentTime - cur.t0) / cur.d; return cur.loop ? x - Math.floor(x) : Math.min(Math.max(x, 0), 0.9999); }
 function setPlaying(p) {
   try {
-    if (p && S.style === 'orch' && !ORC_READY) { if (!initAudio()) return; if (ctx.state !== 'running') ctx.resume(); ORC_PENDING = !ORC_ERR; setSnd(ORC_ERR ? 'blocked' : 'busy', ORC_ERR ? 'orchestra samples could not be decoded' : 'decoding orchestra samples…'); return; }
-    if (p) { if (!initAudio()) return; if (ctx.state !== 'running') ctx.resume(); if (pos >= 0.9999) pos = 0; stop(cur); cur = null; start(pos); playing = true; }
-    else if (playing) { pos = curPos(); stop(cur); cur = null; playing = false; setSnd('ready', 'paused'); }
+    if (p) { if (!initAudio()) return; unlock(); if (ctx.state !== 'running') ctx.resume(); window.__T.clickAt = performance.now(); window.__T.firstSoundAt = undefined; if (pos >= 0.9999) pos = 0; stop(cur); cur = null; waitOff = null; playing = true;
+      if (S.style === 'orch' && (ORC_ERR || !ORC_READY)) { if (ORC_ERR) { playing = false; setSnd('blocked', 'orchestra samples could not be decoded'); } else { waitOff = pos; setSnd('busy', 'decoding orchestra samples…'); } }
+      else start(pos); }
+    else if (playing) { pos = curPos(); stop(cur); cur = null; waitOff = null; playing = false; setSnd('ready', 'paused'); }
   } catch (e) { console.error(e); playing = false; setSnd('error', e.message || String(e)); }
   syncPlay();
 }
-let rt = 0; function invalidate() { dirty = true; buf = null; TB = tablesFor(opts()); clearTimeout(rt); rt = setTimeout(() => { if (playing) { const t = curPos(); stop(cur); try { start(t); } catch (e) { setSnd('error', e.message); } } }, 150); }
+let rt = 0; function invalidate() { dirty = true; buf = null; TB = tablesFor(opts()); if (S.style === 'orch' && ctx) { const was = E; useEntry(); } else ACC = accentTimes();
+  clearTimeout(rt); rt = setTimeout(() => { if (playing) { const t = cur ? curPos() : (waitOff !== null ? waitOff : pos); stop(cur); cur = null; waitOff = null; try { start(t); } catch (e) { setSnd('error', e.message); } } }, 150); }
 function syncPlay() { $('#pico').setAttribute('d', playing ? 'M2.5 1.5h3.2v11H2.5zM8.3 1.5h3.2v11H8.3z' : 'M3 1.5v11l9-5.5z'); if (playing) $('#hint').hidden = true; }
 /* ───── controls ───── */
 const CT = [
@@ -91,22 +160,43 @@ const CT = [
   { k: 'grain', l: 'Grain', min: 0, max: 1.5, step: .05, f: v => v.toFixed(2) },
 ];
 const refs = [], panel = $('#panel');
-// layout: minimal front (title + volume) · Explorations (other styles) · Advanced (everything else)
-panel.insertAdjacentHTML('beforeend', '<div class="lead"><b id="leadname">Strata Orchestra</b><span class="note" id="leadsub">Recorded orchestra, one section per height band of the canyon wall</span><button id="backorch" hidden>← Back to Strata Orchestra</button></div><div id="front"></div><details id="explore"><summary>Explorations</summary><div class="dbody" id="exbody"><p class="note">Earlier takes on the same terrain. The notes and rapid accents stay where the canyon put them; only the sound changes.</p></div></details><details id="adv"><summary>Advanced</summary><div class="dbody" id="advbody"></div></details>');
-const front = $('#front'), exbody = $('#exbody'), advbody = $('#advbody');
-$('#backorch').onclick = () => { S.style = 'orch'; refs.forEach(f => f()); invalidate(); save(); };
-refs.push(() => { const nm = { canyon: 'Canyon (original)', edm: 'EDM', country: 'Country', pop: 'Pop', strata: 'Strata', orch: 'Strata Orchestra' }; $('#leadname').textContent = nm[S.style]; $('#leadsub').textContent = S.style === 'orch' ? 'Recorded orchestra, one section per height band of the canyon wall' : 'Exploration style'; $('#backorch').hidden = S.style === 'orch'; });
-{ const r = document.createElement('div'); r.className = 'row'; r.innerHTML = '<div class="t"><span>Style</span><em></em></div><div class="seg"></div>'; const sg = r.querySelector('.seg'), em = r.querySelector('em');
-  const info = { canyon: '84 BPM · minor pent', edm: '124 BPM · natural minor', country: '100 BPM · major pent', pop: '110 BPM · major', strata: '84 BPM · 4 height bands (approx.)', orch: '84 BPM · recorded orchestra by height band · concert-hall IR' };
-  const bs = [['canyon', 'Canyon (original)'], ['edm', 'EDM'], ['country', 'Country'], ['pop', 'Pop'], ['strata', 'Strata'], ['orch', 'Strata Orchestra']].map(([v, l]) => { const b = document.createElement('button'); b.textContent = l;
+// layout: front = preset + per-band instrument pickers + volume · Explorations (the original synth styles) · Advanced (everything else)
+panel.insertAdjacentHTML('beforeend', '<div class="lead"><b id="leadname">Strata Orchestra</b><span class="note" id="leadsub"></span><button id="backorch" hidden>← Back to the orchestra</button></div><div id="front"><div id="orchui"></div></div><details id="explore"><summary>Explorations</summary><div class="dbody" id="exbody"><p class="note">The original synth versions. The notes and rapid accents stay where the canyon put them; only the sound changes.</p></div></details><details id="adv"><summary>Advanced</summary><div class="dbody" id="advbody"></div></details>');
+const front = $('#front'), orchui = $('#orchui'), exbody = $('#exbody'), advbody = $('#advbody'), RO = RiverOrch;
+const setPreset = (id) => { S.style = 'orch'; S.preset = id; S.inst = Object.assign({}, RO.PRESETS[id].inst); refs.forEach(f => f()); invalidate(); save(); };
+$('#backorch').onclick = () => setPreset(S.preset !== 'custom' && RO.PRESETS[S.preset] ? S.preset : 'orchestra');
+refs.push(() => { const nm = { canyon: 'Canyon (original synth)', edm: 'EDM (original synth)', country: 'Country (original synth)', pop: 'Pop (original synth)', strata: 'Strata (synth)' };
+  const orch = S.style === 'orch'; $('#leadname').textContent = orch ? (S.preset === 'custom' ? 'Custom orchestra' : RO.PRESETS[S.preset].label) : nm[S.style];
+  $('#leadsub').textContent = orch ? 'Recorded instruments, one per height band of the canyon wall' : 'Exploration: original synth style'; $('#backorch').hidden = orch; orchui.hidden = !orch; });
+{ // preset row
+  const r = document.createElement('div'); r.className = 'row'; r.innerHTML = '<div class="t"><span>Style</span><em></em></div><div class="seg" id="presets"></div>'; const sg = r.querySelector('.seg'), em = r.querySelector('em');
+  const bs = Object.entries(RO.PRESETS).map(([id, P]) => { const b = document.createElement('button'); b.textContent = id === 'orchestra' ? 'Orchestra' : P.label; b.dataset.p = id; b.onclick = () => setPreset(id); sg.appendChild(b); return [id, b]; });
+  refs.push(() => { bs.forEach(([id, b]) => b.setAttribute('aria-checked', S.style === 'orch' && S.preset === id)); em.textContent = S.preset === 'custom' ? 'custom' : S.inst.groove !== 'none' ? '84 BPM · ' + RO.GROOVE[S.inst.groove].toLowerCase() : '84 BPM'; });
+  orchui.appendChild(r);
+  // per-band instrument pickers (recorded VSCO 2 CE instruments only)
+  const rows = [['b4', 'Band 4 · rim (1000 m+)', RO.BAND_INST[3].map(v => [v, RO.INST[v].label])], ['b3', 'Band 3 · Redwall / Supai (650–1000 m)', RO.BAND_INST[2].map(v => [v, RO.INST[v].label])],
+    ['b2', 'Band 2 · Tonto / Muav (300–650 m)', RO.BAND_INST[1].map(v => [v, RO.INST[v].label])], ['b1', 'Band 1 · river / Inner Gorge (0–300 m)', RO.BAND_INST[0].map(v => [v, RO.INST[v].label])],
+    ['acc', 'Rapids (accents)', Object.entries(RO.ACC)], ['groove', 'Beat', Object.entries(RO.GROOVE)]];
+  const g = document.createElement('div'); g.className = 'row picks';
+  for (const [k, l, list] of rows) { const w = document.createElement('label'); w.className = 'pick'; w.innerHTML = '<span></span><select></select>'; w.firstChild.textContent = l; const sel = w.querySelector('select'); sel.id = 'pick-' + k;
+    for (const [v, t] of list) { const o = document.createElement('option'); o.value = v; o.textContent = t + (v === RO.DEF_INST[k] ? ' (default)' : ''); sel.appendChild(o); }
+    sel.onchange = () => { S.inst[k] = sel.value; const m = Object.entries(RO.PRESETS).find(([, P]) => INST_KEYS.every(q => P.inst[q] === S.inst[q])); S.preset = m ? m[0] : 'custom'; refs.forEach(f => f()); invalidate(); save(); };
+    refs.push(() => { sel.value = S.inst[k]; }); g.appendChild(w); }
+  orchui.appendChild(g);
+  const r4 = document.createElement('div'); r4.className = 'row'; r4.innerHTML = '<div class="note" id="orchnote"></div>';
+  refs.push(() => { r4.querySelector('#orchnote').textContent = (ORC_ERR ? 'Orchestra samples could not be decoded (' + ORC_ERR + '). ' : !ORC_READY ? 'Decoding orchestra samples… ' : !ORC2_READY ? (ORC2_ERR ? 'Extra instruments could not be decoded (' + ORC2_ERR + '). ' : 'Decoding extra instruments… ') : '') +
+    'All instruments are real recordings (VSCO 2 CE, CC0). Room: Jack Lyons Concert Hall IR, OpenAIR, CC BY 4.0. Changing instruments never moves a note or a rapid.'; }); orchui.appendChild(r4);
+}
+{ // Explorations: the original synth styles
+  const r = document.createElement('div'); r.className = 'row'; r.innerHTML = '<div class="t"><span>Original synth styles</span><em></em></div><div class="seg"></div>'; const sg = r.querySelector('.seg'), em = r.querySelector('em');
+  const info = { canyon: '84 BPM · minor pent', edm: '124 BPM · natural minor', country: '100 BPM · major pent', pop: '110 BPM · major', strata: '84 BPM · 4 height bands (approx.)' };
+  const bs = [['canyon', 'Canyon (original)'], ['edm', 'EDM (original)'], ['country', 'Country (original)'], ['pop', 'Pop (original)'], ['strata', 'Strata (synth)']].map(([v, l]) => { const b = document.createElement('button'); b.textContent = l;
     b.onclick = () => { S.style = v; refs.forEach(f => f()); invalidate(); save(); }; sg.appendChild(b); return [v, b]; });
-  refs.push(() => { bs.forEach(([v, b]) => b.setAttribute('aria-checked', S.style === v)); em.textContent = info[S.style]; }); exbody.appendChild(r);
+  refs.push(() => { bs.forEach(([v, b]) => b.setAttribute('aria-checked', S.style === v)); em.textContent = info[S.style] || ''; }); exbody.appendChild(r);
   const r3 = document.createElement('div'); r3.className = 'row'; r3.innerHTML = '<div class="t"><span>Band 3 voice (650–1000 m)</span></div><select id="b3v"><option value="brass">Brass pad (current)</option><option value="strings">Bowed strings</option><option value="mallet">Soft mallet</option><option value="cello">Cello section (recorded)</option><option value="horn">French horn (recorded)</option></select><div class="t" style="margin-top:8px"><span>Band 2 voice (300–650 m)</span></div><select id="b2v"><option value="synth">Synth pluck (current)</option><option value="pizz">Cello pizzicato (recorded)</option></select><div class="note" id="smpnote"></div>';
   const sel = r3.querySelector('#b3v'), sel2 = r3.querySelector('#b2v'); sel.onchange = () => { S.b3 = sel.value; invalidate(); save(); }; sel2.onchange = () => { S.b2 = sel2.value; invalidate(); save(); };
-  refs.push(() => { r3.hidden = S.style !== 'strata'; sel.value = S.b3; sel2.value = S.b2; r3.querySelector('#smpnote').textContent = SMP_ERR ? 'Recorded samples could not be decoded (' + SMP_ERR + '); using synthetic strings instead.' : SMP_READY ? 'Recorded voices: VSCO 2 Community Edition, CC0.' : 'Decoding recorded samples…'; }); exbody.appendChild(r3);
-  const r4 = document.createElement('div'); r4.className = 'row'; r4.innerHTML = '<div class="note" id="orchnote"></div>';
-  refs.push(() => { r4.hidden = S.style !== 'orch'; r4.querySelector('#orchnote').textContent = (ORC_ERR ? 'Orchestra samples could not be decoded (' + ORC_ERR + ').' : ORC_READY ? '' : 'Decoding orchestra samples… ') +
-    'Basses+tuba · cellos arco/pizz · violas+horn · violins/flute · timpani/bass drum/cymbal (VSCO 2 CE, CC0). Room: Jack Lyons Concert Hall IR, OpenAIR, CC BY 4.0. The Reverb slider does not apply to this style.'; }); front.appendChild(r4); }
+  refs.push(() => { r3.hidden = S.style !== 'strata'; sel.value = S.b3; sel2.value = S.b2; r3.querySelector('#smpnote').textContent = SMP_ERR ? 'Recorded samples could not be decoded (' + SMP_ERR + '); using synthetic strings instead.' : SMP_READY ? 'Recorded voices: VSCO 2 Community Edition, CC0.' : 'Decoding recorded samples…'; }); exbody.appendChild(r3); }
+
 for (const c of CT) { const r = document.createElement('div'); r.className = 'row'; r.innerHTML = '<div class="t"><span></span><em></em></div><input type="range">';
   r.querySelector('span').textContent = c.l; const inp = r.querySelector('input'), em = r.querySelector('em'); inp.min = c.min; inp.max = c.max; inp.step = c.step;
   inp.oninput = () => { S[c.k] = parseFloat(inp.value); em.textContent = c.f(S[c.k]); if (c.a) invalidate(); if (ctx) { master.gain.value = S.vol; wet.gain.value = S.verb; } save(); };
@@ -304,7 +394,7 @@ function frame(now) {
   if (playing && ENV) { const k = Math.min(ENV.n - 1, Math.floor(t * ENV.n)); lvL += (Math.min(1, ENV.eL[k] * 3.2) - lvL) * .3; lvR += (Math.min(1, ENV.eR[k] * 3.2) - lvR) * .3; } else { lvL *= .92; lvR *= .92; }
   $('#barL').style.opacity = .4 + lvL; $('#barR').style.opacity = .4 + lvR;
   { const show = isBand(); $('#strata').hidden = !show;
-    if (show && BLAB.s !== S.style) { BLAB.s = S.style; document.querySelectorAll('#strata .sr span').forEach((el, j) => { const k = 3 - j; if (!BLAB.o[k]) BLAB.o[k] = el.textContent; el.textContent = S.style === 'orch' ? BLAB.o[k].replace(/·.*$/, '· ' + ['double basses + tuba', 'cellos arco / pizz', 'violas + horn', 'violins / flute'][k]) : BLAB.o[k]; }); }
+    if (show && BLAB.s !== S.style + JSON.stringify(S.inst)) { BLAB.s = S.style + JSON.stringify(S.inst); document.querySelectorAll('#strata .sr span').forEach((el, j) => { const k = 3 - j; if (!BLAB.o[k]) BLAB.o[k] = el.textContent; el.textContent = S.style === 'orch' ? BLAB.o[k].replace(/·.*$/, '· ' + RiverOrch.INST[S.inst['b' + (k + 1)]].label.toLowerCase()) : BLAB.o[k]; }); }
     if (show) for (let k = 0; k < 4; k++) { const v = playing && BANDENV ? BANDENV.e[k][Math.min(BANDENV.n - 1, Math.floor(t * BANDENV.n))] * (0.5 + Math.max(lvL, lvR)) : 0; BL4[k] += (v - BL4[k]) * .25; $('#sb' + k).style.width = Math.min(100, BL4[k] * 100) + '%'; } }
   readout(t); if (!gl) return;
   const fi = t * (N - 1), i0 = Math.min(N - 2, fi | 0), f = fi - i0, dx = RX[i0] + (RX[i0 + 1] - RX[i0]) * f, dz = RZ[i0] + (RZ[i0 + 1] - RZ[i0]) * f, de = RD.river[i0] + (RD.river[i0 + 1] - RD.river[i0]) * f;
@@ -376,6 +466,6 @@ addEventListener('resize', resize);
 try { if (!gl) throw new Error('WebGL 2 is not available, so the 3D view is off. Sound still works.'); initGL(); resize(); }
 catch (e) { console.error(e); gl = null; $('#msg').hidden = false; $('#msg').textContent = 'The 3D view could not start (' + e.message + '). Sound still works.'; }
 $('#cap-info').textContent = RD.name + ' · ' + ((N - 1) * RD.ds / 1000).toFixed(0) + ' km · river ' + Math.round(RD.river[0]) + ' → ' + Math.round(RD.river[N - 1]) + ' m · key ' + SYN.rootName + ' minor pentatonic';
-window.__river = { orch: () => ({ ready: ORC_READY, err: ORC_ERR, render: (o, sr) => ORC.render(o, sr) }), setPlaying: (p) => setPlaying(p), S: () => S, audio: () => ({ state: ctx && ctx.state, playing, pos: curPos(), status: snd.textContent, dur: buf && buf.duration }), nT: () => nT, hdr: () => hdr, lv: () => [lvL, lvR], seekTo: (x) => { pos = x; if (playing) { stop(cur); start(pos); } } };
+window.__river = { T: () => window.__T, cache: () => [...CACHE.values()].map(e => ({ o: e.o, done: e.done, n: e.n, full: !!e.buf })), cur: () => E && { o: E.o, done: E.done, n: E.n, full: !!E.buf, rms: (() => { const L = E.buf ? E.buf.getChannelData(0) : E.job && E.job.L; if (!L) return null; let a = 0, m = Math.min(E.done, L.length); for (let i = 0; i < m; i += 7) a += L[i] * L[i]; return Math.sqrt(a / (m / 7)); })() }, orch: () => ({ ready: ORC_READY, err: ORC_ERR, render: (o, sr) => ORC.render(o, sr) }), setPlaying: (p) => setPlaying(p), S: () => S, audio: () => ({ state: ctx && ctx.state, playing, pos: curPos(), status: snd.textContent, dur: buf && buf.duration }), nT: () => nT, hdr: () => hdr, lv: () => [lvL, lvR], seekTo: (x) => { pos = x; if (playing) { stop(cur); start(pos); } } };
 requestAnimationFrame(frame);
 })();
